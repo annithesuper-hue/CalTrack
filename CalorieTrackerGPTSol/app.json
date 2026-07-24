@@ -1,0 +1,104 @@
+{
+  "expo": {
+    "name": "CalTrack",
+    "slug": "caltrack",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "scheme": "calorietracker",
+    "userInterfaceStyle": "light",
+    "backgroundColor": "#F6F7F1",
+    "ios": {
+      "icon": "./assets/expo.icon",
+      "bundleIdentifier": "com.vadim.caltrack",
+      "supportsTablet": false,
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      },
+      "appleTeamId": "9VVXDFW34G"
+    },
+    "android": {
+      "package": "com.vadim.caltrack",
+      "adaptiveIcon": {
+        "backgroundColor": "#18251D",
+        "foregroundImage": "./assets/images/android-icon-foreground.png",
+        "backgroundImage": "./assets/images/android-icon-background.png",
+        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "android.permission.CAMERA"
+      ]
+    },
+    "web": {
+      "output": "server",
+      "favicon": "./assets/images/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#18251D",
+          "image": "./assets/images/splash-icon.png",
+          "imageWidth": 76
+        }
+      ],
+      "@clerk/expo",
+      "expo-secure-store",
+      "expo-sqlite",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "CalTrack uses your camera to estimate calories and macros from a meal.",
+          "recordAudioAndroid": false,
+          "barcodeScannerEnabled": false
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "color": "#A7E86B"
+        }
+      ],
+      [
+        "expo-widgets",
+        {
+          "groupIdentifier": "group.com.vadim.caltrack",
+          "enablePushNotifications": true,
+          "widgets": [
+            {
+              "name": "CalorieProgress",
+              "displayName": "CalTrack Today",
+              "description": "See today's calories and macros at a glance.",
+              "supportedFamilies": [
+                "systemSmall",
+                "systemMedium",
+                "accessoryRectangular"
+              ]
+            }
+          ]
+        }
+      ],
+      [
+        "@kingstinct/react-native-healthkit",
+        {
+          "NSHealthShareUsageDescription": "CalTrack reads activity energy to show a more useful daily calorie picture.",
+          "NSHealthUpdateUsageDescription": "CalTrack saves nutrition totals you choose to Apple Health."
+        }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "deploymentTarget": "17.0"
+          }
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true,
+      "reactCompiler": true
+    }
+  }
+}

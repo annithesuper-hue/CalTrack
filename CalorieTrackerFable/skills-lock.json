@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "skills": {
+    "clerk-expo": {
+      "source": "clerk/skills",
+      "sourceType": "github",
+      "skillPath": "skills/mobile/clerk-expo/SKILL.md",
+      "computedHash": "db8101de14305d683ebdee39123ab43041e1f0265b38814812a5e550aa4d14a0"
+    },
+    "clerk-setup": {
+      "source": "clerk/skills",
+      "sourceType": "github",
+      "skillPath": "skills/core/clerk-setup/SKILL.md",
+      "computedHash": "2142fbbf99008c3152e7044730e57d6063b26a9f2523da1fd21a83f6207a2b81"
+    },
+    "find-skills": {
+      "source": "vercel-labs/skills",
+      "sourceType": "github",
+      "skillPath": "skills/find-skills/SKILL.md",
+      "computedHash": "b146008599c31057cef1c145774cea5d5afb30e8f43fa802e47a4b461419aaaf"
+    }
+  }
+}
