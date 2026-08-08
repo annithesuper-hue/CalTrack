@@ -28,6 +28,32 @@ export function initDb(): void {
     );
     CREATE INDEX IF NOT EXISTS idx_meals_day ON meals(day);
   `);
+
+  // Add serving columns if they don't exist (safe for existing installs)
+  try {
+    db.execSync(`ALTER TABLE meals ADD COLUMN serving_size TEXT;`);
+  } catch {
+    // Column already exists
+  }
+  try {
+    db.execSync(`ALTER TABLE meals ADD COLUMN servings REAL NOT NULL DEFAULT 1;`);
+  } catch {
+    // Column already exists
+  }
+
+
+  // Add serving columns if they don't exist (safe for existing installs)
+  try {
+    db.execSync(`ALTER TABLE meals ADD COLUMN serving_size TEXT;`);
+  } catch {
+    // Column already exists
+  }
+  try {
+    db.execSync(`ALTER TABLE meals ADD COLUMN servings REAL NOT NULL DEFAULT 1;`);
+  } catch {
+    // Column already exists
+  }
+
   seedIfNeeded();
 }
 
@@ -69,6 +95,8 @@ export function getProfile(): Profile | null {
 export function setProfile(profile: Profile): void {
   kvSet('profile', JSON.stringify(profile));
 }
+  serving_size: string | null;
+  servings: number;
 
 // ---------- meals ----------
 
@@ -82,6 +110,10 @@ type MealRow = {
   fat: number;
   photo_uri: string | null;
   note: string | null;
+  serving_size: string | null;
+    servingSize: row.serving_size ?? null,
+    servings: row.servings ?? 1,
+  servings: number;
   created_at: number;
 };
 
@@ -96,6 +128,8 @@ function rowToMeal(row: MealRow): Meal {
     fat: row.fat,
     photoUri: row.photo_uri,
     note: row.note,
+    servingSize: row.serving_size ?? null,
+    servings: row.servings ?? 1,
     createdAt: row.created_at,
   };
 }
@@ -115,8 +149,8 @@ export function getMeal(id: string): Meal | null {
 
 export function insertMeal(meal: Meal): void {
   db.runSync(
-    `INSERT INTO meals (id, name, emoji, calories, protein, carbs, fat, photo_uri, note, day, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO meals (id, name, emoji, calories, protein, carbs, fat, photo_uri, note, serving_size, servings, day, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     meal.id,
     meal.name,
     meal.emoji,
@@ -126,6 +160,8 @@ export function insertMeal(meal: Meal): void {
     Math.round(meal.fat),
     meal.photoUri,
     meal.note,
+    meal.servingSize ?? null,
+    meal.servings ?? 1,
     dayKey(new Date(meal.createdAt)),
     meal.createdAt,
   );
@@ -133,7 +169,7 @@ export function insertMeal(meal: Meal): void {
 
 export function updateMeal(meal: Meal): void {
   db.runSync(
-    `UPDATE meals SET name = ?, emoji = ?, calories = ?, protein = ?, carbs = ?, fat = ?, note = ?
+    `UPDATE meals SET name = ?, emoji = ?, calories = ?, protein = ?, carbs = ?, fat = ?, note = ?, serving_size = ?, servings = ?
      WHERE id = ?`,
     meal.name,
     meal.emoji,
@@ -142,6 +178,8 @@ export function updateMeal(meal: Meal): void {
     Math.round(meal.carbs),
     Math.round(meal.fat),
     meal.note,
+    meal.servingSize ?? null,
+    meal.servings ?? 1,
     meal.id,
   );
 }
@@ -248,6 +286,8 @@ function seedIfNeeded(): void {
       fat: jitter(seedMeal.f),
       photoUri: null,
       note: null,
+      servingSize: null,
+      servings: 1,
       createdAt: at.getTime(),
     });
   };
