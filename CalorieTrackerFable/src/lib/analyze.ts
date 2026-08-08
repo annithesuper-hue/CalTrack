@@ -1,4 +1,4 @@
-import { apiUrl, ApiError, requestJson } from './api-client';
+import { ApiError } from './api-client';
 import { analyzeMealPhotoDirect } from './gemini-client';
 import type { AnalysisResult } from './types';
 
@@ -7,12 +7,9 @@ type RawAnalysis = Partial<AnalysisResult> & { error?: string; message?: string 
 /**
  * Analyzes a captured meal photo (base64).
  *
- * If EXPO_PUBLIC_GEMINI_API_KEY is set, calls Gemini directly from the
- * device — required for native builds that don't have a server deployed
- * behind the /api/analyze route (a relative fetch has no origin to resolve
- * against there). Otherwise falls back to the /api/analyze server route,
- * which keeps GEMINI_API_KEY off the client — use that path if you deploy
- * a server and set EXPO_PUBLIC_API_BASE_URL. See .env.example.
+ * Calls Gemini directly from the device using the hardcoded key in
+ * gemini-client.ts — required for native builds, which have no server
+ * origin for a relative fetch('/api/analyze') to resolve against.
  *
  * Throws ApiError. Callers can check `error.body?.error === 'no_food'` for
  * the "no food detected" case, and `friendlyErrorMessage(error, 'ai')` for a
@@ -23,19 +20,7 @@ export async function analyzeMealPhoto(
   mimeType: string = 'image/jpeg',
   signal?: AbortSignal,
 ): Promise<AnalysisResult> {
-  const clientKey = process.env.EXPO_PUBLIC_GEMINI_API_KEY;
-
-  const data: RawAnalysis = clientKey
-    ? await analyzeMealPhotoDirect(base64, mimeType, clientKey, signal)
-    : await requestJson<RawAnalysis>(apiUrl('/api/analyze'), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ imageBase64: base64, mimeType }),
-        // Image analysis can take a while — give it a generous budget.
-        timeoutMs: 45000,
-        retries: 2,
-        signal,
-      });
+  const data: RawAnalysis = await analyzeMealPhotoDirect(base64, mimeType, signal);
 
   return {
     name: data.name || 'Meal',
