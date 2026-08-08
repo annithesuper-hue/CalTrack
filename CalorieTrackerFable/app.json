@@ -44,7 +44,8 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "CalTrack uses the camera to snap photos of your meals and estimate their calories and macros."
+          "cameraPermission": "CalTrack uses the camera to snap photos of your meals and scan barcodes to estimate calories and macros.",
+          "barcodeScannerEnabled": true
         }
       ],
       [
