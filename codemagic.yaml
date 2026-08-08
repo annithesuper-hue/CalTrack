@@ -1,51 +1,49 @@
 workflows:
-  android-apk:
-    name: CalTrack Android APK
-    instance_type: linux_x2
-    max_build_duration: 60
+  ios-release:
+    name: CalTrack iOS IPA
+    max_build_duration: 120
+    instance_type: mac_mini_m2
 
     environment:
+      xcode: latest
+      cocoapods: default
       node: 22
-      java: 17
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: dev.notjust.caltrack
 
     scripts:
-      - name: Locate Expo project
+      - name: Install npm dependencies
         script: |
           set -e
-          if [ -f "package.json" ]; then
-            export APP_DIR="."
-          elif [ -f "CalorieTrackerFable/package.json" ]; then
-            export APP_DIR="CalorieTrackerFable"
-          else
-            echo "ERROR: package.json not found."
-            echo "Put the Expo project files in the repository root or in CalorieTrackerFable/"
-            exit 1
-          fi
-          echo "APP_DIR=$APP_DIR" > "$CM_ENV"
-
-      - name: Install dependencies
-        script: |
-          set -e
-          cd "$APP_DIR"
+          cd "$CM_BUILD_DIR/CalorieTrackerFable"
           npm ci
 
-      - name: Generate Android project with Expo
+      - name: Generate iOS project with Expo
         script: |
           set -e
-          cd "$APP_DIR"
-          npx expo prebuild --platform android --non-interactive
+          cd "$CM_BUILD_DIR/CalorieTrackerFable"
+          npx expo prebuild --platform ios --non-interactive
 
-      - name: Configure Android SDK
+      - name: Install CocoaPods dependencies
         script: |
           set -e
-          echo "sdk.dir=$ANDROID_SDK_ROOT" > "$APP_DIR/android/local.properties"
+          cd "$CM_BUILD_DIR/CalorieTrackerFable/ios"
+          pod install
 
-      - name: Build APK
+      - name: Configure iOS code signing
         script: |
           set -e
-          cd "$APP_DIR/android"
-          chmod +x gradlew
-          ./gradlew assembleDebug
+          cd "$CM_BUILD_DIR/CalorieTrackerFable"
+          xcode-project use-profiles
+
+      - name: Build signed IPA
+        script: |
+          set -e
+          cd "$CM_BUILD_DIR/CalorieTrackerFable"
+          xcode-project build-ipa             --workspace "ios/CalTrack.xcworkspace"             --scheme "CalTrack"
 
     artifacts:
-      - "**/android/app/build/outputs/apk/debug/*.apk"
+      - "CalorieTrackerFable/build/ios/ipa/*.ipa"
+      - "/tmp/xcodebuild_logs/*.log"
+      - "$HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.dSYM"
