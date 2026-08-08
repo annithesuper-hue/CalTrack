@@ -1,49 +1,47 @@
 workflows:
-  ios-release:
-    name: CalTrack iOS IPA
+  ios-unsigned:
+    name: CalTrack iOS Unsigned
     max_build_duration: 120
     instance_type: mac_mini_m2
 
     environment:
       xcode: latest
-      cocoapods: default
       node: 22
-      ios_signing:
-        distribution_type: app_store
-        bundle_identifier: dev.notjust.caltrack
+      cocoapods: default
 
     scripts:
-      - name: Install npm dependencies
+      - name: Install dependencies
         script: |
           set -e
           cd "$CM_BUILD_DIR/CalorieTrackerFable"
           npm ci
 
-      - name: Generate iOS project with Expo
+      - name: Generate iOS project
         script: |
           set -e
           cd "$CM_BUILD_DIR/CalorieTrackerFable"
           npx expo prebuild --platform ios --non-interactive
 
-      - name: Install CocoaPods dependencies
+      - name: Install CocoaPods
         script: |
           set -e
           cd "$CM_BUILD_DIR/CalorieTrackerFable/ios"
           pod install
 
-      - name: Configure iOS code signing
+      - name: Build unsigned iOS app
         script: |
           set -e
           cd "$CM_BUILD_DIR/CalorieTrackerFable"
-          xcode-project use-profiles
 
-      - name: Build signed IPA
-        script: |
-          set -e
-          cd "$CM_BUILD_DIR/CalorieTrackerFable"
-          xcode-project build-ipa             --workspace "ios/CalTrack.xcworkspace"             --scheme "CalTrack"
+          xcodebuild \
+            -workspace "ios/CalTrack.xcworkspace" \
+            -scheme "CalTrack" \
+            -configuration Release \
+            -sdk iphoneos \
+            -derivedDataPath build/ios \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            build
 
     artifacts:
-      - "CalorieTrackerFable/build/ios/ipa/*.ipa"
-      - "/tmp/xcodebuild_logs/*.log"
-      - "$HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.dSYM"
+      - "CalorieTrackerFable/build/ios/Build/Products/Release-iphoneos/*.app"
