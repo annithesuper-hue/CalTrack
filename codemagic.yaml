@@ -1,13 +1,16 @@
-workflows:
+from pathlib import Path
+
+yaml = """workflows:
   ios-unsigned:
     name: CalTrack iOS Unsigned
     max_build_duration: 120
     instance_type: mac_mini_m2
 
     environment:
-      xcode: latest
       node: 22
       cocoapods: default
+      groups:
+        - caltrack-secrets
 
     scripts:
       - name: Install dependencies
@@ -15,6 +18,16 @@ workflows:
           set -e
           cd "$CM_BUILD_DIR/CalorieTrackerFable"
           npm ci
+
+      - name: Verify required environment variables
+        script: |
+          set -e
+          if [ -z "$EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY" ]; then
+            echo "ERROR: EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY is missing."
+            echo "Add it to the Codemagic variable group: caltrack-secrets"
+            exit 1
+          fi
+          echo "Clerk Publishable Key is available."
 
       - name: Generate iOS project
         script: |
@@ -43,5 +56,29 @@ workflows:
             CODE_SIGNING_REQUIRED=NO \
             build
 
+      - name: Package unsigned app
+        script: |
+          set -e
+          cd "$CM_BUILD_DIR/CalorieTrackerFable"
+
+          APP_PATH="build/ios/Build/Products/Release-iphoneos/CalTrack.app"
+
+          if [ ! -d "$APP_PATH" ]; then
+            echo "ERROR: CalTrack.app was not produced."
+            exit 1
+          fi
+
+          mkdir -p build/ios/unsigned
+          cp -R "$APP_PATH" build/ios/unsigned/
+          cd build/ios/unsigned
+          zip -r "$CM_BUILD_DIR/CalTrack-unsigned.app.zip" CalTrack.app
+
     artifacts:
-      - "CalorieTrackerFable/build/ios/Build/Products/Release-iphoneos/*.app"
+      - "CalTrack-unsigned.app.zip"
+      - "CalorieTrackerFable/build/ios/unsigned/CalTrack.app"
+"""
+
+path = Path("/mnt/data/codemagic-ios-unsigned-updated.yaml")
+path.write_text(yaml, encoding="utf-8")
+
+print(f"Created {path}")
