@@ -18,15 +18,36 @@ workflows:
           cd "$CM_BUILD_DIR/CalorieTrackerFable"
           npm ci
 
-      - name: Check Clerk key
+      - name: Check required API keys
         script: |
           set -e
+          missing=0
+
           if [ -z "$EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY" ]; then
             echo "ERROR: EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY is missing."
-            echo "Add it to the Codemagic group: caltrack-secrets"
+            missing=1
+          else
+            echo "Clerk Publishable Key detected."
+          fi
+
+          if [ -z "$GEMINI_API_KEY" ]; then
+            echo "ERROR: GEMINI_API_KEY is missing."
+            missing=1
+          else
+            echo "Gemini API key detected."
+          fi
+
+          if [ -z "$USDA_API_KEY" ]; then
+            echo "ERROR: USDA_API_KEY is missing."
+            missing=1
+          else
+            echo "USDA API key detected."
+          fi
+
+          if [ "$missing" -eq 1 ]; then
+            echo "Add the missing key(s) to the Codemagic group: caltrack-secrets"
             exit 1
           fi
-          echo "Clerk Publishable Key detected."
 
       - name: Generate iOS project
         script: |
