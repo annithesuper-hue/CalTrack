@@ -22,6 +22,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { NutrientField } from '@/components/nutrient-field';
 import { Button } from '@/components/ui';
 import { analyzeMealPhoto } from '@/lib/analyze';
+import { ApiError, userMessageForError } from '@/lib/api-client';
 import { haptic } from '@/lib/haptics';
 import { useApp } from '@/lib/store';
 import { Colors, MacroMeta, Radius, Shadow, Spacing, Type } from '@/lib/theme';
@@ -59,8 +60,7 @@ export default function Camera() {
       setPhase('result');
       haptic.success();
     } catch (e) {
-      const message = e instanceof Error ? e.message : 'Something went wrong';
-      setErrorMessage(message.includes('no_food') || message.includes('No food') ? "We couldn't find food in that photo. Try again with the meal in frame." : 'Analysis failed. Check your connection and try again.');
+      setErrorMessage(userMessageForError(e));
       setPhase('error');
       haptic.error();
     }

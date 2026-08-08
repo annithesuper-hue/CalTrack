@@ -139,7 +139,12 @@ export async function apiFetch<T>(
 
       if (e instanceof ApiError) throw e;
 
-      if (e instanceof DOMException && e.name === 'AbortError') {
+      // AbortError fires when our timeout or an external signal cancels the fetch.
+      // React Native does not have DOMException, so check Error.name directly.
+      const isAbort =
+        (e instanceof Error && e.name === 'AbortError') ||
+        (typeof DOMException !== 'undefined' && e instanceof DOMException && e.name === 'AbortError');
+      if (isAbort) {
         if (externalSignal?.aborted) {
           throw new ApiError('unknown', 'Request cancelled.');
         }
