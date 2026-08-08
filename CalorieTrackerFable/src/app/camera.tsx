@@ -4,7 +4,7 @@ import { Image } from 'expo-image';
 import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
 import { router } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -22,7 +22,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { NutrientField } from '@/components/nutrient-field';
 import { Button } from '@/components/ui';
 import { analyzeMealPhoto } from '@/lib/analyze';
-import { ApiError, userMessageForError } from '@/lib/api-client';
+import { ApiError, friendlyErrorMessage } from '@/lib/api-client';
 import { haptic } from '@/lib/haptics';
 import { useApp } from '@/lib/store';
 import { Colors, MacroMeta, Radius, Shadow, Spacing, Type } from '@/lib/theme';
@@ -40,6 +40,39 @@ export default function Camera() {
   const [photoUri, setPhotoUri] = useState<string | null>(null);
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [errorMessage, setErrorMessage] = useState('');
+  // Kept so "Try Again" can re-run analysis on the same photo instead of
+  // forcing the person to retake it.
+  const lastBase64Ref = useRef<string | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
+
+  // Cancel any in-flight request if the screen unmounts, and never touch
+  // state after that point.
+  useEffect(() => {
+    return () => abortRef.current?.abort();
+  }, []);
+
+  const runAnalysis = async (base64: string) => {
+    setPhase('analyzing');
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+    try {
+      const analysis = await analyzeMealPhoto(base64, 'image/jpeg', controller.signal);
+      if (controller.signal.aborted) return;
+      setResult(analysis);
+      setPhase('result');
+      haptic.success();
+    } catch (e) {
+      if (controller.signal.aborted) return;
+      if (e instanceof ApiError && e.body && (e.body as { error?: string }).error === 'no_food') {
+        setErrorMessage("We couldn't find food in that photo. Try again with the meal in frame.");
+      } else {
+        setErrorMessage(friendlyErrorMessage(e, 'ai'));
+      }
+      setPhase('error');
+      haptic.error();
+    }
+  };
 
   const capture = async () => {
     if (!cameraRef.current) return;
@@ -47,7 +80,6 @@ export default function Camera() {
     try {
       const photo = await cameraRef.current.takePictureAsync({ quality: 0.9 });
       setPhotoUri(photo.uri);
-      setPhase('analyzing');
 
       // Downscale before shipping to the API — faster and cheaper.
       const context = ImageManipulator.manipulate(photo.uri);
@@ -55,14 +87,23 @@ export default function Camera() {
       const rendered = await context.renderAsync();
       const saved = await rendered.saveAsync({ format: SaveFormat.JPEG, compress: 0.7, base64: true });
 
-      const analysis = await analyzeMealPhoto(saved.base64!);
-      setResult(analysis);
-      setPhase('result');
-      haptic.success();
+      lastBase64Ref.current = saved.base64 ?? null;
+      if (!lastBase64Ref.current) throw new Error('Failed to prepare photo');
+      await runAnalysis(lastBase64Ref.current);
     } catch (e) {
-      setErrorMessage(userMessageForError(e));
+      setErrorMessage(e instanceof ApiError ? friendlyErrorMessage(e, 'ai') : 'Something went wrong preparing the photo. Try again.');
       setPhase('error');
       haptic.error();
+    }
+  };
+
+  /** "Try Again" re-runs analysis on the same photo — it doesn't discard it. */
+  const retryAnalysis = () => {
+    haptic.tap();
+    if (lastBase64Ref.current) {
+      void runAnalysis(lastBase64Ref.current);
+    } else {
+      retake();
     }
   };
 
@@ -85,6 +126,8 @@ export default function Camera() {
 
   const retake = () => {
     haptic.tap();
+    abortRef.current?.abort();
+    lastBase64Ref.current = null;
     setPhotoUri(null);
     setResult(null);
     setPhase('camera');
@@ -245,7 +288,10 @@ export default function Camera() {
             <SymbolView name="exclamationmark.triangle.fill" size={30} tintColor={Colors.carbs} />
             <Text style={styles.analyzingTitle}>Hmm, that didn't work</Text>
             <Text style={styles.analyzingSubtitle}>{errorMessage}</Text>
-            <Button title="Try Again" onPress={retake} style={{ alignSelf: 'stretch', marginTop: Spacing.sm }} />
+            <Button title="Try Again" onPress={retryAnalysis} style={{ alignSelf: 'stretch', marginTop: Spacing.sm }} />
+            <Pressable onPress={retake} hitSlop={8} style={{ marginTop: Spacing.xs }}>
+              <Text style={styles.retakeLink}>Retake photo</Text>
+            </Pressable>
           </View>
         </Animated.View>
       )}
@@ -393,6 +439,12 @@ const styles = StyleSheet.create({
     color: Colors.inkSecondary,
     textAlign: 'center',
     lineHeight: 19,
+  },
+  retakeLink: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: Colors.inkSecondary,
+    textDecorationLine: 'underline',
   },
   resultContainer: {
     flex: 1,

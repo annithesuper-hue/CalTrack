@@ -54,12 +54,12 @@ export default function RootLayout() {
               <Stack.Screen name="paywall" options={{ animation: 'slide_from_bottom', gestureEnabled: false }} />
               <Stack.Screen name="(tabs)" options={{ animation: 'fade' }} />
               <Stack.Screen
-                name="camera"
-                options={{ presentation: 'fullScreenModal', animation: 'slide_from_bottom' }}
-              />
-              <Stack.Screen
                 name="add-food"
                 options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
+              />
+              <Stack.Screen
+                name="camera"
+                options={{ presentation: 'fullScreenModal', animation: 'slide_from_bottom' }}
               />
               <Stack.Screen
                 name="barcode"
@@ -67,10 +67,6 @@ export default function RootLayout() {
               />
               <Stack.Screen
                 name="manual-entry"
-                options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
-              />
-              <Stack.Screen
-                name="food-review"
                 options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
               />
               <Stack.Screen name="meal/[id]" options={{ presentation: 'modal' }} />
