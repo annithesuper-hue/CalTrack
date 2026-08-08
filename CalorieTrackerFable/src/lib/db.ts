@@ -41,19 +41,6 @@ export function initDb(): void {
     // Column already exists
   }
 
-
-  // Add serving columns if they don't exist (safe for existing installs)
-  try {
-    db.execSync(`ALTER TABLE meals ADD COLUMN serving_size TEXT;`);
-  } catch {
-    // Column already exists
-  }
-  try {
-    db.execSync(`ALTER TABLE meals ADD COLUMN servings REAL NOT NULL DEFAULT 1;`);
-  } catch {
-    // Column already exists
-  }
-
   seedIfNeeded();
 }
 
@@ -95,8 +82,6 @@ export function getProfile(): Profile | null {
 export function setProfile(profile: Profile): void {
   kvSet('profile', JSON.stringify(profile));
 }
-  serving_size: string | null;
-  servings: number;
 
 // ---------- meals ----------
 
@@ -111,8 +96,6 @@ type MealRow = {
   photo_uri: string | null;
   note: string | null;
   serving_size: string | null;
-    servingSize: row.serving_size ?? null,
-    servings: row.servings ?? 1,
   servings: number;
   created_at: number;
 };

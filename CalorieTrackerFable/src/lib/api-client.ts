@@ -139,10 +139,7 @@ export async function apiFetch<T>(
 
       if (e instanceof ApiError) throw e;
 
-      // React Native doesn't have DOMException; check name property instead.
-      const isAbort = (e instanceof Error && e.name === 'AbortError') ||
-        (typeof DOMException !== 'undefined' && e instanceof DOMException && e.name === 'AbortError');
-      if (isAbort) {
+      if (e instanceof DOMException && e.name === 'AbortError') {
         if (externalSignal?.aborted) {
           throw new ApiError('unknown', 'Request cancelled.');
         }
