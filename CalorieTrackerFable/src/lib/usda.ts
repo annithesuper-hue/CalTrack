@@ -1,4 +1,4 @@
-import { apiUrl, ApiError, requestJson } from './api-client';
+import { ApiError, requestJson } from './api-client';
 import type { AnalysisResult, MacroSet } from './types';
 
 /** USDA nutrient numbers we care about. See fdc.nal.usda.gov nutrient list. */
@@ -131,61 +131,52 @@ export function normalizeUsdaFood(raw: unknown): UsdaNormalizedFood {
 
 const USDA_SEARCH_URL = 'https://api.nal.usda.gov/fdc/v1/foods/search';
 
+/**
+ * USDA FoodData Central API key used for direct on-device requests. Ships
+ * inside the client bundle and is visible to anyone who inspects the app —
+ * replace with your real key before building.
+ */
+const USDA_API_KEY = 'wAbTg2Ej9x14mY7ccdZ87dldf3QglrqZ3GSBzmWr';
+
 /** Strips leading zeros so "0049000028911" and "49000028911" compare equal. */
 function normalizeCode(code: string): string {
   return code.replace(/\D/g, '').replace(/^0+(?=\d)/, '');
 }
 
 /**
- * Looks up a product by UPC/EAN barcode.
- *
- * If EXPO_PUBLIC_USDA_API_KEY is set, queries USDA directly from the device
- * — required for native builds that don't have a server deployed behind
- * /api/usda-lookup (a relative fetch has no origin to resolve against
- * there). Otherwise falls back to the /api/usda-lookup server route, which
- * keeps USDA_API_KEY off the client — use that path if you deploy a server
- * and set EXPO_PUBLIC_API_BASE_URL. See .env.example.
+ * Looks up a product by UPC/EAN barcode directly against USDA FoodData
+ * Central using USDA_API_KEY above. Native builds have no deployed server
+ * behind /api/usda-lookup, so a relative fetch has no origin to resolve
+ * against there — this is the only path used now.
  *
  * Throws ApiError; a 404/not_found means "not found" (not a network
  * problem) — callers should show the "Food not found" state rather than a
  * generic error.
  */
 export async function lookupBarcode(barcode: string, signal?: AbortSignal): Promise<UsdaNormalizedFood> {
-  const clientKey = process.env.EXPO_PUBLIC_USDA_API_KEY;
+  const url = new URL(USDA_SEARCH_URL);
+  url.searchParams.set('api_key', USDA_API_KEY);
+  url.searchParams.set('query', barcode);
+  url.searchParams.set('dataType', 'Branded');
+  url.searchParams.set('pageSize', '10');
 
-  if (clientKey) {
-    const url = new URL(USDA_SEARCH_URL);
-    url.searchParams.set('api_key', clientKey);
-    url.searchParams.set('query', barcode);
-    url.searchParams.set('dataType', 'Branded');
-    url.searchParams.set('pageSize', '10');
-
-    const data = await requestJson<{ foods?: unknown[] }>(url.toString(), {
-      method: 'GET',
-      timeoutMs: 20000,
-      retries: 1,
-      signal,
-    });
-
-    const target = normalizeCode(barcode);
-    const match = (data.foods ?? []).find((food) => {
-      const gtin = (food as { gtinUpc?: string }).gtinUpc;
-      return typeof gtin === 'string' && normalizeCode(gtin) === target;
-    });
-
-    if (!match) {
-      throw new ApiError('not_found', 'No matching product found in USDA FoodData Central.');
-    }
-    return normalizeUsdaFood(match);
-  }
-
-  const data = await requestJson<{ food: unknown }>(apiUrl(`/api/usda-lookup?barcode=${encodeURIComponent(barcode)}`), {
+  const data = await requestJson<{ foods?: unknown[] }>(url.toString(), {
     method: 'GET',
     timeoutMs: 20000,
     retries: 1,
     signal,
   });
-  return normalizeUsdaFood(data.food);
+
+  const target = normalizeCode(barcode);
+  const match = (data.foods ?? []).find((food) => {
+    const gtin = (food as { gtinUpc?: string }).gtinUpc;
+    return typeof gtin === 'string' && normalizeCode(gtin) === target;
+  });
+
+  if (!match) {
+    throw new ApiError('not_found', 'No matching product found in USDA FoodData Central.');
+  }
+  return normalizeUsdaFood(match);
 }
 
 /**
