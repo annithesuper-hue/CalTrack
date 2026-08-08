@@ -1,187 +1,164 @@
-import { ApiError, apiFetch } from './api-client';
-import type { FoodItem } from './types';
+import { apiUrl, requestJson } from './api-client';
+import type { AnalysisResult, MacroSet } from './types';
 
-const __DEV__ = process.env.NODE_ENV !== 'production';
-
-const BASE_URL = 'https://api.nal.usda.gov/fdc/v1';
-
-/** USDA FoodData Central nutrient IDs — matched by number, never by array position. */
-const NUTRIENT_IDS = {
-  ENERGY_KCAL: [1008, 208, 2048],
-  PROTEIN_G: [1003, 203],
-  CARBOHYDRATE_G: [1005, 205],
-  FAT_G: [1004, 204],
-  FIBER_G: [1079, 291],
-  SUGAR_G: [2000, 269],
-  SODIUM_MG: [1093, 307],
+/** USDA nutrient numbers we care about. See fdc.nal.usda.gov nutrient list. */
+const NUTRIENT_ID = {
+  ENERGY_KCAL: 1008,
+  PROTEIN: 1003,
+  FAT: 1004,
+  CARBS: 1005,
+  FIBER: 1079,
+  SUGAR: 2000,
+  SODIUM: 1093,
 } as const;
 
-type UsdaNutrient = {
-  nutrientId: number;
-  name: string;
-  unitName: string;
-  amount: number;
-};
+export type UsdaExtras = { fiber: number; sugar: number; sodium: number };
 
-type UsdaFood = {
+export type UsdaNormalizedFood = {
   fdcId: number;
-  description?: string;
-  brandOwner?: string;
-  brandName?: string;
-  dataType?: string;
-  servingSize?: number;
-  servingSizeUnit?: string;
-  foodMeasures?: Array<{
-    label?: string;
-    gramWeight?: number;
-    portionDescription?: string;
-  }>;
-  foodNutrients?: Array<{
-    nutrientId?: number;
-    name?: string;
-    unitName?: string;
-    amount?: number;
-    value?: number;
-  }>;
+  name: string;
+  brand: string | null;
+  /** Size of one serving, if USDA reports it. */
+  servingSize: number | null;
+  servingSizeUnit: string | null;
+  /** Human string like "1 bar (40g)", when available. */
+  servingDescription: string | null;
+  gtinUpc: string | null;
+  /** Nutrition for exactly one serving (see servingDescription). */
+  perServing: MacroSet & UsdaExtras;
 };
 
-type UsdaSearchResponse = {
-  foods: UsdaFood[];
-  totalHits?: number;
-};
-
-type UsdaDetailResponse = UsdaFood;
-
-function getApiKey(): string {
-  const key = process.env.EXPO_PUBLIC_USDA_API_KEY;
-  if (!key) {
-    throw new ApiError('unauthorized', 'USDA API key is not configured.');
-  }
-  return key;
+function safeNumber(value: unknown): number {
+  return typeof value === 'number' && Number.isFinite(value) ? value : 0;
 }
 
-/** Safely extract a nutrient amount from the USDA nutrient array by ID. */
-function extractNutrient(
-  food: UsdaFood,
-  ids: readonly number[],
-  fallback = 0,
-): number {
-  const nutrients = food.foodNutrients ?? [];
-  for (const id of ids) {
-    const match = nutrients.find((n) => n.nutrientId === id);
-    if (match) {
-      const val = match.amount ?? match.value;
-      if (typeof val === 'number' && Number.isFinite(val)) return val;
+function extractPer100g(foodNutrients: unknown): Record<number, number> {
+  const map: Record<number, number> = {};
+  if (!Array.isArray(foodNutrients)) return map;
+  for (const raw of foodNutrients) {
+    const n = raw as { nutrientId?: number; nutrient?: { id?: number }; value?: number; amount?: number };
+    const id = n.nutrientId ?? n.nutrient?.id;
+    const value = typeof n.value === 'number' ? n.value : n.amount;
+    if (typeof id === 'number' && typeof value === 'number' && Number.isFinite(value)) {
+      map[id] = value;
     }
   }
-  return fallback;
+  return map;
 }
 
-/** Normalize any USDA food type into the app's FoodItem model. */
-export function normalizeUsdaFood(food: UsdaFood): FoodItem {
-  const calories = extractNutrient(food, NUTRIENT_IDS.ENERGY_KCAL);
-  const protein = extractNutrient(food, NUTRIENT_IDS.PROTEIN_G);
-  const carbs = extractNutrient(food, NUTRIENT_IDS.CARBOHYDRATE_G);
-  const fat = extractNutrient(food, NUTRIENT_IDS.FAT_G);
-  const fiber = extractNutrient(food, NUTRIENT_IDS.FIBER_G);
-  const sugar = extractNutrient(food, NUTRIENT_IDS.SUGAR_G);
-  const sodium = extractNutrient(food, NUTRIENT_IDS.SODIUM_MG);
+type LabelNutrients = {
+  calories?: { value?: number };
+  protein?: { value?: number };
+  carbohydrates?: { value?: number };
+  fat?: { value?: number };
+  fiber?: { value?: number };
+  sugars?: { value?: number };
+  sodium?: { value?: number };
+};
 
-  const servingSize = food.servingSize
-    ? `${food.servingSize} ${food.servingSizeUnit ?? 'g'}`
-    : '1 serving';
+/** Branded foods carry a `labelNutrients` object matching the printed Nutrition Facts panel — per serving, no scaling needed. */
+function fromLabelNutrients(label: unknown): (MacroSet & UsdaExtras) | null {
+  const l = label as LabelNutrients | null | undefined;
+  if (!l || typeof l.calories?.value !== 'number') return null;
+  return {
+    calories: safeNumber(l.calories?.value),
+    protein: safeNumber(l.protein?.value),
+    carbs: safeNumber(l.carbohydrates?.value),
+    fat: safeNumber(l.fat?.value),
+    fiber: safeNumber(l.fiber?.value),
+    sugar: safeNumber(l.sugars?.value),
+    sodium: safeNumber(l.sodium?.value),
+  };
+}
 
-  const brand = food.brandOwner || food.brandName || null;
-  const name = food.description || 'Unknown food';
+/** Fallback: USDA's general foodNutrients array is per-100g; scale to the serving size. */
+function fromPer100g(per100g: Record<number, number>, servingSize: number | null): MacroSet & UsdaExtras {
+  const grams = servingSize && servingSize > 0 ? servingSize : 100;
+  const scale = grams / 100;
+  const at = (id: number) => (per100g[id] ?? 0) * scale;
+  return {
+    calories: at(NUTRIENT_ID.ENERGY_KCAL),
+    protein: at(NUTRIENT_ID.PROTEIN),
+    carbs: at(NUTRIENT_ID.CARBS),
+    fat: at(NUTRIENT_ID.FAT),
+    fiber: at(NUTRIENT_ID.FIBER),
+    sugar: at(NUTRIENT_ID.SUGAR),
+    sodium: at(NUTRIENT_ID.SODIUM),
+  };
+}
+
+export function normalizeUsdaFood(raw: unknown): UsdaNormalizedFood {
+  const f = raw as {
+    fdcId?: number;
+    description?: string;
+    brandOwner?: string;
+    brandName?: string;
+    servingSize?: number;
+    servingSizeUnit?: string;
+    householdServingFullText?: string;
+    gtinUpc?: string;
+    labelNutrients?: unknown;
+    foodNutrients?: unknown;
+  };
+
+  const servingSize = typeof f.servingSize === 'number' ? f.servingSize : null;
+  const servingSizeUnit = f.servingSizeUnit ?? null;
+
+  const perServing =
+    fromLabelNutrients(f.labelNutrients) ?? fromPer100g(extractPer100g(f.foodNutrients), servingSize);
 
   return {
-    name,
-    brand,
-    emoji: '🍽️',
+    fdcId: typeof f.fdcId === 'number' ? f.fdcId : 0,
+    name: f.description?.trim() || 'Unknown food',
+    brand: f.brandOwner?.trim() || f.brandName?.trim() || null,
     servingSize,
-    servings: 1,
-    source: 'usda',
-    calories: Math.max(0, Math.round(calories)),
-    protein: Math.max(0, Math.round(protein)),
-    carbs: Math.max(0, Math.round(carbs)),
-    fat: Math.max(0, Math.round(fat)),
-    fiber: Math.max(0, Math.round(fiber)),
-    sugar: Math.max(0, Math.round(sugar)),
-    sodium: Math.max(0, Math.round(sodium)),
+    servingSizeUnit,
+    servingDescription:
+      f.householdServingFullText?.trim() ||
+      (servingSize ? `${servingSize}${servingSizeUnit ?? 'g'}` : null),
+    gtinUpc: f.gtinUpc ?? null,
+    perServing: {
+      calories: Math.max(0, perServing.calories),
+      protein: Math.max(0, perServing.protein),
+      carbs: Math.max(0, perServing.carbs),
+      fat: Math.max(0, perServing.fat),
+      fiber: Math.max(0, perServing.fiber),
+      sugar: Math.max(0, perServing.sugar),
+      sodium: Math.max(0, perServing.sodium),
+    },
   };
 }
 
 /**
- * Search USDA FoodData Central by barcode (UPC/GTIN).
- * Returns null if no match found (distinct from a network error).
+ * Looks up a product by UPC/EAN barcode via our server-side USDA route.
+ * Throws ApiError; a 404 means "not found" (not a network problem) —
+ * callers should show the "Food not found" state rather than a generic error.
  */
-export async function lookupBarcode(barcode: string): Promise<FoodItem | null> {
-  const apiKey = getApiKey();
-  const cleaned = barcode.replace(/[^0-9]/g, '');
-
-  if (__DEV__) console.log(`[usda] Looking up barcode: ${cleaned}`);
-
-  try {
-    const data = await apiFetch<UsdaSearchResponse>(
-      `${BASE_URL}/foods/search?api_key=${apiKey}`,
-      {
-        method: 'POST',
-        body: JSON.stringify({
-          query: cleaned,
-          dataType: ['Branded'],
-          pageSize: 5,
-        }),
-        timeoutMs: 20000,
-        retries: 1,
-      },
-    );
-
-    const foods = data.foods ?? [];
-    if (foods.length === 0) {
-      if (__DEV__) console.log('[usda] No barcode match found');
-      return null;
-    }
-
-    // Find the best match — prefer exact UPC/GTIN match
-    let best: UsdaFood | undefined;
-    for (const f of foods) {
-      const desc = (f.description || '').toLowerCase();
-      if (desc.includes(cleaned) || desc.includes(barcode.toLowerCase())) {
-        best = f;
-        break;
-      }
-    }
-    if (!best) best = foods[0];
-
-    return normalizeUsdaFood(best);
-  } catch (e) {
-    if (e instanceof ApiError && e.type === 'not_found') {
-      return null;
-    }
-    throw e;
-  }
+export async function lookupBarcode(barcode: string, signal?: AbortSignal): Promise<UsdaNormalizedFood> {
+  const data = await requestJson<{ food: unknown }>(apiUrl(`/api/usda-lookup?barcode=${encodeURIComponent(barcode)}`), {
+    method: 'GET',
+    timeoutMs: 20000,
+    retries: 1,
+    signal,
+  });
+  return normalizeUsdaFood(data.food);
 }
 
 /**
- * Search USDA FoodData Central by food name (for future use / manual search).
+ * Converts a normalized USDA food + a quantity (number of servings) into
+ * the same AnalysisResult shape the AI photo flow produces, so it can be
+ * logged through the existing `logMeal` pipeline without any special-casing.
  */
-export async function searchFoodByName(query: string): Promise<FoodItem[]> {
-  const apiKey = getApiKey();
-
-  const data = await apiFetch<UsdaSearchResponse>(
-    `${BASE_URL}/foods/search?api_key=${apiKey}`,
-    {
-      method: 'POST',
-      body: JSON.stringify({
-        query,
-        dataType: ['Branded', 'Foundation', 'SR Legacy'],
-        pageSize: 10,
-      }),
-      timeoutMs: 20000,
-      retries: 1,
-    },
-  );
-
-  const foods = data.foods ?? [];
-  return foods.map(normalizeUsdaFood);
+export function usdaFoodToAnalysis(food: UsdaNormalizedFood, servings: number): AnalysisResult {
+  const s = Number.isFinite(servings) && servings > 0 ? servings : 1;
+  return {
+    name: food.brand ? `${food.name} (${food.brand})` : food.name,
+    emoji: '📦',
+    calories: Math.max(0, Math.round(food.perServing.calories * s)),
+    protein: Math.max(0, Math.round(food.perServing.protein * s)),
+    carbs: Math.max(0, Math.round(food.perServing.carbs * s)),
+    fat: Math.max(0, Math.round(food.perServing.fat * s)),
+    confidence: 'high',
+    items: [],
+  };
 }

@@ -24,7 +24,7 @@ type AppState = {
   todayMeals: Meal[];
   totals: Totals;
   isOnboarded: boolean;
-  logMeal: (analysis: AnalysisResult, photoUri: string | null, servingSize?: string | null, servings?: number) => Meal;
+  logMeal: (analysis: AnalysisResult, photoUri: string | null) => Meal;
   editMeal: (meal: Meal) => void;
   removeMeal: (id: string) => void;
   saveGoals: (goals: Goals) => void;
@@ -73,25 +73,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [initialized, totals, goals]);
 
   const logMeal = useCallback(
-    (
-      analysis: AnalysisResult,
-      photoUri: string | null,
-      servingSize: string | null = null,
-      servings: number = 1,
-    ): Meal => {
-      const scale = servings > 0 ? servings : 1;
+    (analysis: AnalysisResult, photoUri: string | null): Meal => {
       const meal: Meal = {
         id: Crypto.randomUUID(),
         name: analysis.name,
         emoji: analysis.emoji,
-        calories: Math.round(analysis.calories * scale),
-        protein: Math.round(analysis.protein * scale),
-        carbs: Math.round(analysis.carbs * scale),
-        fat: Math.round(analysis.fat * scale),
+        calories: analysis.calories,
+        protein: analysis.protein,
+        carbs: analysis.carbs,
+        fat: analysis.fat,
         photoUri,
-        note: servingSize ? `${servingSize} · ${servings}x` : null,
-        servingSize,
-        servings: scale,
+        note: null,
         createdAt: Date.now(),
       };
       db.insertMeal(meal);
