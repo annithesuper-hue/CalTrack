@@ -29,12 +29,19 @@ function hasPro(info: CustomerInfo | null): boolean {
   return Boolean(info?.entitlements.active[PRO_ENTITLEMENT]);
 }
 
+// Paywall disabled: everyone is treated as Pro by default and the
+// purchase flow is skipped entirely. Flip this back to `false` (and
+// restore the RevenueCat init logic below) to re-enable purchases.
+const FORCE_PRO = true;
+
 export function PurchasesProvider({ children }: { children: React.ReactNode }) {
-  const [isReady, setIsReady] = useState(false);
-  const [isPro, setIsPro] = useState(false);
+  const [isReady, setIsReady] = useState(FORCE_PRO);
+  const [isPro, setIsPro] = useState(FORCE_PRO);
   const [packages, setPackages] = useState<PurchasesPackage[]>([]);
 
   useEffect(() => {
+    if (FORCE_PRO) return;
+
     // The key sometimes arrives with a pasted "RC=" prefix — strip anything
     // before the actual "test_" / "appl_" key body.
     const raw = process.env.EXPO_PUBLIC_REVENUECAT_API_KEY_TEST ?? '';
@@ -71,6 +78,7 @@ export function PurchasesProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const purchase = useCallback(async (pkg: PurchasesPackage) => {
+    if (FORCE_PRO) return true;
     try {
       const { customerInfo } = await Purchases.purchasePackage(pkg);
       const pro = hasPro(customerInfo);
@@ -84,6 +92,7 @@ export function PurchasesProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const restore = useCallback(async () => {
+    if (FORCE_PRO) return true;
     try {
       const info = await Purchases.restorePurchases();
       const pro = hasPro(info);
@@ -96,7 +105,7 @@ export function PurchasesProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const syncClerkUser = useCallback((userId: string | null) => {
-    if (!userId) return;
+    if (FORCE_PRO || !userId) return;
     Purchases.logIn(userId)
       .then(({ customerInfo }) => setIsPro(hasPro(customerInfo)))
       .catch((e) => console.warn('RevenueCat logIn failed', e));
