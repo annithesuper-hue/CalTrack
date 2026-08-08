@@ -1,14 +1,13 @@
-from pathlib import Path
-
-yaml = """workflows:
-  ios-unsigned:
-    name: CalTrack iOS Unsigned
+workflows:
+  ios-unsigned-ipa:
+    name: CalTrack iOS Unsigned IPA
     max_build_duration: 120
     instance_type: mac_mini_m2
 
     environment:
-      node: 22
+      xcode: latest
       cocoapods: default
+      node: 22
       groups:
         - caltrack-secrets
 
@@ -19,15 +18,15 @@ yaml = """workflows:
           cd "$CM_BUILD_DIR/CalorieTrackerFable"
           npm ci
 
-      - name: Verify required environment variables
+      - name: Check Clerk key
         script: |
           set -e
           if [ -z "$EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY" ]; then
             echo "ERROR: EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY is missing."
-            echo "Add it to the Codemagic variable group: caltrack-secrets"
+            echo "Add it to the Codemagic group: caltrack-secrets"
             exit 1
           fi
-          echo "Clerk Publishable Key is available."
+          echo "Clerk Publishable Key detected."
 
       - name: Generate iOS project
         script: |
@@ -51,34 +50,35 @@ yaml = """workflows:
             -scheme "CalTrack" \
             -configuration Release \
             -sdk iphoneos \
-            -derivedDataPath build/ios \
-            CODE_SIGNING_ALLOWED=NO \
+            -derivedDataPath "$CM_BUILD_DIR/ios-build" \
+            CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
             build
 
-      - name: Package unsigned app
+      - name: Package unsigned IPA
         script: |
           set -e
-          cd "$CM_BUILD_DIR/CalorieTrackerFable"
 
-          APP_PATH="build/ios/Build/Products/Release-iphoneos/CalTrack.app"
+          APP_PATH="$CM_BUILD_DIR/ios-build/Build/Products/Release-iphoneos/CalTrack.app"
+          IPA_DIR="$CM_BUILD_DIR/unsigned-ipa"
 
           if [ ! -d "$APP_PATH" ]; then
             echo "ERROR: CalTrack.app was not produced."
             exit 1
           fi
 
-          mkdir -p build/ios/unsigned
-          cp -R "$APP_PATH" build/ios/unsigned/
-          cd build/ios/unsigned
-          zip -r "$CM_BUILD_DIR/CalTrack-unsigned.app.zip" CalTrack.app
+          rm -rf "$IPA_DIR"
+          mkdir -p "$IPA_DIR/Payload"
+
+          cp -R "$APP_PATH" "$IPA_DIR/Payload/CalTrack.app"
+
+          cd "$IPA_DIR"
+          zip -r "$CM_BUILD_DIR/CalTrack-unsigned.ipa" Payload
+
+          echo "Unsigned IPA created:"
+          echo "$CM_BUILD_DIR/CalTrack-unsigned.ipa"
 
     artifacts:
-      - "CalTrack-unsigned.app.zip"
-      - "CalorieTrackerFable/build/ios/unsigned/CalTrack.app"
-"""
-
-path = Path("/mnt/data/codemagic-ios-unsigned-updated.yaml")
-path.write_text(yaml, encoding="utf-8")
-
-print(f"Created {path}")
+      - "CalTrack-unsigned.ipa"
+      - "/tmp/xcodebuild_logs/*.log"
