@@ -30,18 +30,22 @@ workflows:
             echo "Clerk Publishable Key detected."
           fi
 
-          if [ -z "$GEMINI_API_KEY" ]; then
-            echo "ERROR: GEMINI_API_KEY is missing."
+          if [ -z "$EXPO_PUBLIC_GEMINI_API_KEY" ] && [ -z "$GEMINI_API_KEY" ]; then
+            echo "ERROR: neither EXPO_PUBLIC_GEMINI_API_KEY nor GEMINI_API_KEY is set."
             missing=1
+          elif [ -n "$EXPO_PUBLIC_GEMINI_API_KEY" ]; then
+            echo "Gemini API key detected (direct-from-device)."
           else
-            echo "Gemini API key detected."
+            echo "Gemini API key detected (server route) — requires EXPO_PUBLIC_API_BASE_URL to work in this unsigned build, since no server is deployed."
           fi
 
-          if [ -z "$USDA_API_KEY" ]; then
-            echo "ERROR: USDA_API_KEY is missing."
+          if [ -z "$EXPO_PUBLIC_USDA_API_KEY" ] && [ -z "$USDA_API_KEY" ]; then
+            echo "ERROR: neither EXPO_PUBLIC_USDA_API_KEY nor USDA_API_KEY is set."
             missing=1
+          elif [ -n "$EXPO_PUBLIC_USDA_API_KEY" ]; then
+            echo "USDA API key detected (direct-from-device)."
           else
-            echo "USDA API key detected."
+            echo "USDA API key detected (server route) — requires EXPO_PUBLIC_API_BASE_URL to work in this unsigned build, since no server is deployed."
           fi
 
           if [ "$missing" -eq 1 ]; then
