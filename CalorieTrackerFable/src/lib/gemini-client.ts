@@ -18,20 +18,21 @@ type RawGeminiFood = {
 };
 
 /**
- * Calls the Gemini API directly from the device instead of going through
- * /api/analyze. Used when EXPO_PUBLIC_GEMINI_API_KEY is set — necessary for
- * native builds that don't have a deployed server behind the Expo Router
- * API routes (fetch('/api/analyze') has no origin to resolve against there).
- *
- * Trade-off: the API key ships inside the client bundle and is visible to
- * anyone who inspects the app. Only use this path if you're comfortable
- * with that; otherwise deploy the server and set EXPO_PUBLIC_API_BASE_URL
- * instead (see .env.example).
+ * Gemini API key used for direct on-device requests. Ships inside the
+ * client bundle and is visible to anyone who inspects the app — replace
+ * with your real key before building.
+ */
+const GEMINI_API_KEY = 'AQ.Ab8RN6J0ZAoAVGGYvBSu_rwi1JcpLPq7Ova3wH-QcYXSzzmC4w';
+
+/**
+ * Calls the Gemini API directly from the device using GEMINI_API_KEY above.
+ * Native builds have no deployed server behind the Expo Router API routes,
+ * so fetch('/api/analyze') has no origin to resolve against there — this is
+ * the only path used now.
  */
 export async function analyzeMealPhotoDirect(
   base64: string,
   mimeType: string,
-  apiKey: string,
   signal?: AbortSignal,
 ): Promise<RawGeminiFood> {
   const payload = {
@@ -55,7 +56,7 @@ export async function analyzeMealPhotoDirect(
         `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
         {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
+          headers: { 'Content-Type': 'application/json', 'x-goog-api-key': GEMINI_API_KEY },
           body: JSON.stringify(payload),
           timeoutMs: 45000,
           retries: 1,
