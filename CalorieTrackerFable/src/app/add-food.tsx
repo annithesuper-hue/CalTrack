@@ -28,6 +28,13 @@ export default function AddFood() {
       onPress: () => router.replace('/camera'),
     },
     {
+      icon: 'magnifyingglass',
+      title: 'Search Food',
+      subtitle: 'Search USDA FoodData Central by name.',
+      iconBg: Colors.carbs,
+      onPress: () => router.replace('/search-food'),
+    },
+    {
       icon: 'barcode.viewfinder',
       title: 'Scan Barcode',
       subtitle: 'Scan a packaged food and search USDA FoodData Central.',
