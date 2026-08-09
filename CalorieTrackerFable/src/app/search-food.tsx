@@ -16,14 +16,16 @@ import {
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { HealthBadge } from '@/components/health-badge';
 import { NutrientField } from '@/components/nutrient-field';
+import { QuantityInput } from '@/components/quantity-input';
 import { Button } from '@/components/ui';
 import { friendlyErrorMessage } from '@/lib/api-client';
+import { foodResultToAnalysis, searchAllFoods, type FoodResult } from '@/lib/food-search';
 import { haptic } from '@/lib/haptics';
 import { useApp } from '@/lib/store';
 import { Colors, MacroMeta, Radius, Shadow, Spacing, Type } from '@/lib/theme';
 import type { AnalysisResult } from '@/lib/types';
-import { searchFoods, usdaFoodToAnalysis, type UsdaNormalizedFood } from '@/lib/usda';
 
 type Phase = 'idle' | 'searching' | 'results' | 'empty' | 'error' | 'review';
 
@@ -35,11 +37,10 @@ export default function SearchFood() {
 
   const [query, setQuery] = useState('');
   const [phase, setPhase] = useState<Phase>('idle');
-  const [results, setResults] = useState<UsdaNormalizedFood[]>([]);
+  const [results, setResults] = useState<FoodResult[]>([]);
   const [errorMessage, setErrorMessage] = useState('');
 
-  const [selected, setSelected] = useState<UsdaNormalizedFood | null>(null);
-  const [servings, setServings] = useState(1);
+  const [selected, setSelected] = useState<FoodResult | null>(null);
   const [result, setResult] = useState<AnalysisResult | null>(null);
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -58,7 +59,7 @@ export default function SearchFood() {
     abortRef.current = controller;
 
     setPhase('searching');
-    searchFoods(text, controller.signal)
+    searchAllFoods(text, controller.signal)
       .then((foods) => {
         if (controller.signal.aborted) return;
         setResults(foods);
@@ -86,20 +87,16 @@ export default function SearchFood() {
     debounceRef.current = setTimeout(() => runSearch(trimmed), DEBOUNCE_MS);
   };
 
-  const selectFood = (food: UsdaNormalizedFood) => {
+  const selectFood = (food: FoodResult) => {
     haptic.tap();
     setSelected(food);
-    setServings(1);
-    setResult(usdaFoodToAnalysis(food, 1));
+    setResult(foodResultToAnalysis(food, food.defaultQuantity));
     setPhase('review');
   };
 
-  const changeServings = (delta: number) => {
+  const changeQuantity = (quantity: number) => {
     if (!selected) return;
-    const next = Math.max(0.25, Math.round((servings + delta) * 4) / 4);
-    setServings(next);
-    setResult(usdaFoodToAnalysis(selected, next));
-    haptic.select();
+    setResult(foodResultToAnalysis(selected, quantity));
   };
 
   const backToResults = () => {
@@ -140,22 +137,26 @@ export default function SearchFood() {
           keyboardShouldPersistTaps="handled">
           <Animated.View entering={FadeInDown.duration(350)} style={styles.resultCard}>
             <View style={styles.nameRow}>
-              <Text style={styles.resultEmoji}>🍽️</Text>
+              <Text style={styles.resultEmoji}>{selected.isGeneric ? '🥗' : '🍽️'}</Text>
               <View style={{ flex: 1 }}>
                 <Text style={styles.foodName}>{selected.name}</Text>
                 {selected.brand ? <Text style={styles.foodBrand}>{selected.brand}</Text> : null}
               </View>
             </View>
 
-            <View style={styles.servingsRow}>
-              <Text style={styles.servingsLabel}>
-                Servings{selected.servingDescription ? ` · ${selected.servingDescription}` : ''}
-              </Text>
-              <View style={styles.servingsControls}>
-                <StepperButton symbol="minus" onPress={() => changeServings(-0.25)} />
-                <Text style={styles.servingsValue}>{servings}</Text>
-                <StepperButton symbol="plus" onPress={() => changeServings(0.25)} />
+            {result ? (
+              <View style={styles.badgeRow}>
+                <HealthBadge macros={result} />
               </View>
+            ) : null}
+
+            <View style={styles.quantityWrap}>
+              <QuantityInput
+                baseUnit={selected.unit}
+                defaultQuantity={selected.defaultQuantity}
+                servingDescription={selected.servingDescription}
+                onChange={changeQuantity}
+              />
             </View>
 
             <View style={styles.fieldsDivider} />
@@ -191,7 +192,10 @@ export default function SearchFood() {
               color={MacroMeta.fat.color}
               onChange={(fat) => setResult({ ...result, fat })}
             />
-            <Text style={styles.editHint}>From USDA FoodData Central — tweak anything that looks off.</Text>
+            <Text style={styles.editHint}>
+              From {selected.source === 'off' ? 'Open Food Facts' : selected.source === 'usda' ? 'USDA FoodData Central' : 'built-in food data'} —
+              tweak anything that looks off.
+            </Text>
           </Animated.View>
         </ScrollView>
 
@@ -277,39 +281,37 @@ export default function SearchFood() {
       {phase === 'results' && (
         <FlatList
           data={results}
-          keyExtractor={(item, i) => `${item.fdcId || i}`}
+          keyExtractor={(item, i) => item.id || `${i}`}
           contentContainerStyle={styles.resultsList}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
-          renderItem={({ item, index }) => (
-            <Animated.View entering={FadeIn.duration(220).delay(Math.min(index, 8) * 25)}>
-              <Pressable
-                onPress={() => selectFood(item)}
-                style={({ pressed }) => [styles.resultRow, pressed && { backgroundColor: Colors.cardPressed }]}>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.resultName} numberOfLines={1}>
-                    {item.name}
-                    {item.brand ? ` (${item.brand})` : ''}
-                  </Text>
-                  <Text style={styles.resultMeta}>
-                    {item.servingDescription ?? 'Per serving'} · {Math.round(item.perServing.calories)} kcal
-                  </Text>
-                </View>
-                <SymbolView name="chevron.right" size={14} tintColor={Colors.inkMuted} />
-              </Pressable>
-            </Animated.View>
-          )}
+          renderItem={({ item, index }) => {
+            const kcalAtDefault = Math.round(item.perGram.calories * item.defaultQuantity);
+            return (
+              <Animated.View entering={FadeIn.duration(220).delay(Math.min(index, 8) * 25)}>
+                <Pressable
+                  onPress={() => selectFood(item)}
+                  style={({ pressed }) => [styles.resultRow, pressed && { backgroundColor: Colors.cardPressed }]}>
+                  <View style={[styles.resultTag, item.isGeneric ? styles.resultTagGeneric : styles.resultTagBranded]}>
+                    <Text style={styles.resultTagText}>{item.isGeneric ? '🥗' : '📦'}</Text>
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.resultName} numberOfLines={1}>
+                      {item.name}
+                      {item.brand ? ` (${item.brand})` : ''}
+                    </Text>
+                    <Text style={styles.resultMeta}>
+                      {item.servingDescription ?? `${Math.round(item.defaultQuantity)}${item.unit}`} · {kcalAtDefault} kcal
+                    </Text>
+                  </View>
+                  <SymbolView name="chevron.right" size={14} tintColor={Colors.inkMuted} />
+                </Pressable>
+              </Animated.View>
+            );
+          }}
         />
       )}
     </View>
-  );
-}
-
-function StepperButton({ symbol, onPress }: { symbol: 'plus' | 'minus'; onPress: () => void }) {
-  return (
-    <Pressable onPress={onPress} hitSlop={8} style={({ pressed }) => [styles.stepper, pressed && { backgroundColor: Colors.cardPressed }]}>
-      <SymbolView name={symbol} size={14} tintColor={Colors.ink} />
-    </Pressable>
   );
 }
 
@@ -391,6 +393,22 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.md,
     marginBottom: Spacing.sm,
   },
+  resultTag: {
+    width: 32,
+    height: 32,
+    borderRadius: Radius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  resultTagGeneric: {
+    backgroundColor: Colors.greenSoft,
+  },
+  resultTagBranded: {
+    backgroundColor: Colors.fatSoft,
+  },
+  resultTagText: {
+    fontSize: 15,
+  },
   resultName: {
     fontSize: 15,
     fontWeight: '700',
@@ -427,6 +445,12 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: Colors.inkSecondary,
     marginTop: 2,
+  },
+  badgeRow: {
+    marginTop: Spacing.md,
+  },
+  quantityWrap: {
+    marginTop: Spacing.lg,
   },
   servingsRow: {
     flexDirection: 'row',

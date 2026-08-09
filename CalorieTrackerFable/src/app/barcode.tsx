@@ -15,14 +15,16 @@ import {
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { HealthBadge } from '@/components/health-badge';
 import { NutrientField } from '@/components/nutrient-field';
+import { QuantityInput } from '@/components/quantity-input';
 import { Button } from '@/components/ui';
 import { ApiError, friendlyErrorMessage } from '@/lib/api-client';
+import { foodResultToAnalysis, lookupBarcodeAny, type FoodResult } from '@/lib/food-search';
 import { haptic } from '@/lib/haptics';
 import { useApp } from '@/lib/store';
 import { Colors, MacroMeta, Radius, Shadow, Spacing, Type } from '@/lib/theme';
 import type { AnalysisResult } from '@/lib/types';
-import { lookupBarcode, usdaFoodToAnalysis, type UsdaNormalizedFood } from '@/lib/usda';
 
 type Phase = 'scanning' | 'looking_up' | 'review' | 'not_found' | 'error';
 
@@ -34,8 +36,7 @@ export default function Barcode() {
   const { logMeal } = useApp();
 
   const [phase, setPhase] = useState<Phase>('scanning');
-  const [food, setFood] = useState<UsdaNormalizedFood | null>(null);
-  const [servings, setServings] = useState(1);
+  const [food, setFood] = useState<FoodResult | null>(null);
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [errorMessage, setErrorMessage] = useState('');
   const [scannedCode, setScannedCode] = useState<string | null>(null);
@@ -62,11 +63,10 @@ export default function Barcode() {
     const controller = new AbortController();
     abortRef.current = controller;
     try {
-      const usdaFood = await lookupBarcode(code, controller.signal);
+      const found = await lookupBarcodeAny(code, controller.signal);
       if (controller.signal.aborted) return;
-      setFood(usdaFood);
-      setServings(1);
-      setResult(usdaFoodToAnalysis(usdaFood, 1));
+      setFood(found);
+      setResult(foodResultToAnalysis(found, found.defaultQuantity));
       setPhase('review');
       haptic.success();
     } catch (e) {
@@ -91,12 +91,9 @@ export default function Barcode() {
     setPhase('scanning');
   };
 
-  const changeServings = (delta: number) => {
+  const changeQuantity = (quantity: number) => {
     if (!food) return;
-    const next = Math.max(0.25, Math.round((servings + delta) * 4) / 4);
-    setServings(next);
-    setResult(usdaFoodToAnalysis(food, next));
-    haptic.select();
+    setResult(foodResultToAnalysis(food, quantity));
   };
 
   const save = () => {
@@ -134,22 +131,26 @@ export default function Barcode() {
           keyboardShouldPersistTaps="handled">
           <Animated.View entering={FadeInDown.duration(350)} style={styles.resultCard}>
             <View style={styles.nameRow}>
-              <Text style={styles.resultEmoji}>📦</Text>
+              <Text style={styles.resultEmoji}>{food.isGeneric ? '🥗' : '📦'}</Text>
               <View style={{ flex: 1 }}>
                 <Text style={styles.foodName}>{food.name}</Text>
                 {food.brand ? <Text style={styles.foodBrand}>{food.brand}</Text> : null}
               </View>
             </View>
 
-            <View style={styles.servingsRow}>
-              <Text style={styles.servingsLabel}>
-                Servings{food.servingDescription ? ` · ${food.servingDescription}` : ''}
-              </Text>
-              <View style={styles.servingsControls}>
-                <StepperButton symbol="minus" onPress={() => changeServings(-0.25)} />
-                <Text style={styles.servingsValue}>{servings}</Text>
-                <StepperButton symbol="plus" onPress={() => changeServings(0.25)} />
+            {result ? (
+              <View style={styles.badgeRow}>
+                <HealthBadge macros={result} />
               </View>
+            ) : null}
+
+            <View style={styles.quantityWrap}>
+              <QuantityInput
+                baseUnit={food.unit}
+                defaultQuantity={food.defaultQuantity}
+                servingDescription={food.servingDescription}
+                onChange={changeQuantity}
+              />
             </View>
 
             <View style={styles.fieldsDivider} />
@@ -185,7 +186,10 @@ export default function Barcode() {
               color={MacroMeta.fat.color}
               onChange={(fat) => setResult({ ...result, fat })}
             />
-            <Text style={styles.editHint}>From USDA FoodData Central — tweak anything that looks off.</Text>
+            <Text style={styles.editHint}>
+              From {food.source === 'off' ? 'Open Food Facts' : food.source === 'usda' ? 'USDA FoodData Central' : 'built-in food data'} — tweak
+              anything that looks off.
+            </Text>
           </Animated.View>
         </ScrollView>
 
@@ -207,7 +211,9 @@ export default function Barcode() {
         <SymbolView name="questionmark.circle.fill" size={44} tintColor="#FFFFFF" />
         <Text style={styles.permissionTitle}>Food not found</Text>
         <Text style={styles.permissionText}>
-          {scannedCode ? `We couldn't find "${scannedCode}" in USDA FoodData Central.` : "We couldn't find that product in USDA FoodData Central."}
+          {scannedCode
+            ? `We couldn't find "${scannedCode}" in Open Food Facts or USDA FoodData Central.`
+            : "We couldn't find that product in our food databases."}
         </Text>
         <Button title="Add Manually" onPress={() => router.replace('/manual-entry')} style={{ alignSelf: 'stretch' }} />
         <Button title="Try Another Barcode" variant="secondary" onPress={rescan} style={{ alignSelf: 'stretch' }} />
@@ -253,7 +259,7 @@ export default function Barcode() {
           <View style={styles.analyzingCard}>
             <ActivityIndicator color={Colors.ink} />
             <Text style={styles.analyzingTitle}>Looking up food…</Text>
-            <Text style={styles.analyzingSubtitle}>Searching USDA FoodData Central</Text>
+            <Text style={styles.analyzingSubtitle}>Searching Open Food Facts &amp; USDA</Text>
           </View>
         </Animated.View>
       )}
@@ -401,6 +407,12 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: Colors.inkSecondary,
     marginTop: 2,
+  },
+  badgeRow: {
+    marginTop: Spacing.md,
+  },
+  quantityWrap: {
+    marginTop: Spacing.lg,
   },
   servingsRow: {
     flexDirection: 'row',

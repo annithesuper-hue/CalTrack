@@ -17,6 +17,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { NutrientField } from '@/components/nutrient-field';
 import { Button } from '@/components/ui';
+import { HealthBadge } from '@/components/health-badge';
 import { getMeal } from '@/lib/db';
 import { formatFriendlyDate, formatTime } from '@/lib/dates';
 import { haptic } from '@/lib/haptics';
@@ -95,6 +96,9 @@ export default function MealDetail() {
             {formatFriendlyDate(new Date(meal.createdAt))} · {formatTime(meal.createdAt)}
             {meal.note ? ` · ${meal.note}` : ''}
           </Text>
+          <View style={styles.badgeRow}>
+            <HealthBadge macros={meal} size="md" />
+          </View>
 
           <View style={styles.divider} />
           <NutrientField
@@ -205,6 +209,9 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: Colors.inkMuted,
     marginTop: 6,
+  },
+  badgeRow: {
+    marginTop: Spacing.sm,
   },
   divider: {
     height: StyleSheet.hairlineWidth,

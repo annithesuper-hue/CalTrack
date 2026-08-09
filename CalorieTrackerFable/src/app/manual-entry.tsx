@@ -15,6 +15,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { NutrientField } from '@/components/nutrient-field';
 import { Button } from '@/components/ui';
+import { HealthBadge } from '@/components/health-badge';
 import { haptic } from '@/lib/haptics';
 import { useApp } from '@/lib/store';
 import { Colors, MacroMeta, Radius, Shadow, Spacing, Type } from '@/lib/theme';
@@ -100,6 +101,10 @@ export default function ManualEntry() {
           <NutrientField label="Protein" value={protein} unit="g" step={5} color={MacroMeta.protein.color} onChange={setProtein} />
           <NutrientField label="Carbs" value={carbs} unit="g" step={5} color={MacroMeta.carbs.color} onChange={setCarbs} />
           <NutrientField label="Fat" value={fat} unit="g" step={5} color={MacroMeta.fat.color} onChange={setFat} />
+
+          <View style={styles.badgeRow}>
+            <HealthBadge macros={{ calories, protein, carbs, fat }} />
+          </View>
         </View>
       </ScrollView>
 
@@ -163,6 +168,9 @@ const styles = StyleSheet.create({
     height: StyleSheet.hairlineWidth,
     backgroundColor: Colors.hairline,
     marginVertical: Spacing.lg,
+  },
+  badgeRow: {
+    marginTop: Spacing.sm,
   },
   footer: {
     position: 'absolute',

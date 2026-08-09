@@ -21,6 +21,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { NutrientField } from '@/components/nutrient-field';
 import { Button } from '@/components/ui';
+import { HealthBadge } from '@/components/health-badge';
 import { analyzeMealPhoto } from '@/lib/analyze';
 import { ApiError, friendlyErrorMessage } from '@/lib/api-client';
 import { haptic } from '@/lib/haptics';
@@ -200,6 +201,10 @@ export default function Camera() {
                 ))}
               </View>
             )}
+
+            <View style={styles.badgeRow}>
+              <HealthBadge macros={result} />
+            </View>
 
             <View style={styles.fieldsDivider} />
             <NutrientField
@@ -514,6 +519,9 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '500',
     color: Colors.inkSecondary,
+  },
+  badgeRow: {
+    marginTop: Spacing.md,
   },
   fieldsDivider: {
     height: StyleSheet.hairlineWidth,
