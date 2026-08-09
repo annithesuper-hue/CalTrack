@@ -22,8 +22,7 @@ type RawGeminiFood = {
  * client bundle and is visible to anyone who inspects the app — replace
  * with your real key before building.
  */
-const GEMINI_API_KEY = 'AQ.Ab8RN6If5W9gnVvU3784SKnaXdLQG0X12sHLDunl9D06Qgq4mQ';
-
+const GEMINI_API_KEY = process.env.EXPO_PUBLIC_GEMINI_API_KEY ?? '';
 /**
  * Calls the Gemini API directly from the device using GEMINI_API_KEY above.
  * Native builds have no deployed server behind the Expo Router API routes,
