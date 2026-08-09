@@ -17,19 +17,7 @@ workflows:
           set -e
           cd "$CM_BUILD_DIR/CalorieTrackerFable"
           npm ci
-   
- 
-       - name: Write .env for Expo public vars
-        script: |
-          set -e
-          cd "$CM_BUILD_DIR/CalorieTrackerFable"
-          cat > .env <<EOF
-          EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY=$EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY
-          EXPO_PUBLIC_GEMINI_API_KEY=$EXPO_PUBLIC_GEMINI_API_KEY
-          EXPO_PUBLIC_USDA_API_KEY=$EXPO_PUBLIC_USDA_API_KEY
-          EOF
-          echo ".env written with $(wc -l < .env) vars."
-          
+
       - name: Check required API keys
         script: |
           set -e
@@ -42,28 +30,42 @@ workflows:
             echo "Clerk Publishable Key detected."
           fi
 
-          if [ -z "$EXPO_PUBLIC_GEMINI_API_KEY" ] && [ -z "$GEMINI_API_KEY" ]; then
-            echo "ERROR: neither EXPO_PUBLIC_GEMINI_API_KEY nor GEMINI_API_KEY is set."
+          if [ -z "$EXPO_PUBLIC_GEMINI_API_KEY" ]; then
+            echo "ERROR: EXPO_PUBLIC_GEMINI_API_KEY is missing."
             missing=1
-          elif [ -n "$EXPO_PUBLIC_GEMINI_API_KEY" ]; then
-            echo "Gemini API key detected (direct-from-device)."
           else
-            echo "Gemini API key detected (server route) — requires EXPO_PUBLIC_API_BASE_URL to work in this unsigned build, since no server is deployed."
+            echo "Gemini API key detected."
           fi
 
-          if [ -z "$EXPO_PUBLIC_USDA_API_KEY" ] && [ -z "$USDA_API_KEY" ]; then
-            echo "ERROR: neither EXPO_PUBLIC_USDA_API_KEY nor USDA_API_KEY is set."
+          if [ -z "$EXPO_PUBLIC_USDA_API_KEY" ]; then
+            echo "ERROR: EXPO_PUBLIC_USDA_API_KEY is missing."
             missing=1
-          elif [ -n "$EXPO_PUBLIC_USDA_API_KEY" ]; then
-            echo "USDA API key detected (direct-from-device)."
           else
-            echo "USDA API key detected (server route) — requires EXPO_PUBLIC_API_BASE_URL to work in this unsigned build, since no server is deployed."
+            echo "USDA API key detected."
           fi
 
           if [ "$missing" -eq 1 ]; then
             echo "Add the missing key(s) to the Codemagic group: caltrack-secrets"
             exit 1
           fi
+
+      - name: Write .env for Expo public vars
+        script: |
+          set -e
+          cd "$CM_BUILD_DIR/CalorieTrackerFable"
+          # Metro inlines EXPO_PUBLIC_* at bundle time. When xcodebuild's
+          # internal "Bundle React Native code" phase runs the JS bundler,
+          # it doesn't reliably inherit vars exported by earlier Codemagic
+          # script steps. Writing a .env file here guarantees Expo's env
+          # loader (@expo/env) picks these up no matter which process ends
+          # up doing the actual bundling, so the keys are never silently
+          # baked in as empty strings.
+          cat > .env <<EOF
+          EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY=$EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY
+          EXPO_PUBLIC_GEMINI_API_KEY=$EXPO_PUBLIC_GEMINI_API_KEY
+          EXPO_PUBLIC_USDA_API_KEY=$EXPO_PUBLIC_USDA_API_KEY
+          EOF
+          echo ".env written with $(wc -l < .env) vars."
 
       - name: Generate iOS project
         script: |
