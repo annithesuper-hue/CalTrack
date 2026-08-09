@@ -136,8 +136,7 @@ const USDA_SEARCH_URL = 'https://api.nal.usda.gov/fdc/v1/foods/search';
  * inside the client bundle and is visible to anyone who inspects the app —
  * replace with your real key before building.
  */
-const USDA_API_KEY = 'wAbTg2Ej9x14mY7ccdZ87dldf3QglrqZ3GSBzmWr';
-
+const USDA_API_KEY = process.env.EXPO_PUBLIC_USDA_API_KEY ?? '';
 /** Strips leading zeros so "0049000028911" and "49000028911" compare equal. */
 function normalizeCode(code: string): string {
   return code.replace(/\D/g, '').replace(/^0+(?=\d)/, '');
