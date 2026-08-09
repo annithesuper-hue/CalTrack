@@ -2,6 +2,7 @@ import { Image } from 'expo-image';
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { HealthBadge } from '@/components/health-badge';
 import { haptic } from '@/lib/haptics';
 import { Colors, MacroMeta, Radius, Shadow, Spacing } from '@/lib/theme';
 import type { Meal } from '@/lib/types';
@@ -25,9 +26,12 @@ export function MealCard({ meal, onPress }: { meal: Meal; onPress?: () => void }
         </View>
       )}
       <View style={styles.info}>
-        <Text style={styles.name} numberOfLines={1}>
-          {meal.name}
-        </Text>
+        <View style={styles.nameLine}>
+          <Text style={styles.name} numberOfLines={1}>
+            {meal.name}
+          </Text>
+          <HealthBadge macros={meal} />
+        </View>
         <View style={styles.macroRow}>
           <Text style={styles.time}>{formatTime(meal.createdAt)}</Text>
           <MacroDot color={MacroMeta.protein.color} value={meal.protein} />
@@ -82,11 +86,17 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: 4,
   },
+  nameLine: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
   name: {
     fontSize: 15,
     fontWeight: '600',
     color: Colors.ink,
     letterSpacing: -0.2,
+    flexShrink: 1,
   },
   macroRow: {
     flexDirection: 'row',
