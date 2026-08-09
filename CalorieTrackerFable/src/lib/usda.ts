@@ -26,6 +26,10 @@ export type UsdaNormalizedFood = {
   gtinUpc: string | null;
   /** Nutrition for exactly one serving (see servingDescription). */
   perServing: MacroSet & UsdaExtras;
+  /** Nutrition per 1 gram — the basis used for gram/kg/ml quantity entry. */
+  perGram: MacroSet & UsdaExtras;
+  /** Whether this came from USDA's Branded set (packaged product) vs Foundation/SR Legacy (generic/raw ingredient). */
+  isBranded: boolean;
 };
 
 function safeNumber(value: unknown): number {
@@ -99,13 +103,49 @@ export function normalizeUsdaFood(raw: unknown): UsdaNormalizedFood {
     gtinUpc?: string;
     labelNutrients?: unknown;
     foodNutrients?: unknown;
+    dataType?: string;
   };
 
   const servingSize = typeof f.servingSize === 'number' ? f.servingSize : null;
   const servingSizeUnit = f.servingSizeUnit ?? null;
+  const per100g = extractPer100g(f.foodNutrients);
 
-  const perServing =
-    fromLabelNutrients(f.labelNutrients) ?? fromPer100g(extractPer100g(f.foodNutrients), servingSize);
+  const perServingRaw = fromLabelNutrients(f.labelNutrients) ?? fromPer100g(per100g, servingSize);
+  const perServing = {
+    calories: Math.max(0, perServingRaw.calories),
+    protein: Math.max(0, perServingRaw.protein),
+    carbs: Math.max(0, perServingRaw.carbs),
+    fat: Math.max(0, perServingRaw.fat),
+    fiber: Math.max(0, perServingRaw.fiber),
+    sugar: Math.max(0, perServingRaw.sugar),
+    sodium: Math.max(0, perServingRaw.sodium),
+  };
+
+  // Per-gram basis for the gram/kg/ml quantity picker. Prefer USDA's
+  // per-100g array directly (most accurate); fall back to deriving it from
+  // the per-serving figures when only labelNutrients (branded, per-serving
+  // only) is available.
+  const hasPer100g = Object.keys(per100g).length > 0;
+  const gramsForFallback = servingSize && servingSize > 0 ? servingSize : 100;
+  const perGram = hasPer100g
+    ? {
+        calories: Math.max(0, (per100g[NUTRIENT_ID.ENERGY_KCAL] ?? 0) / 100),
+        protein: Math.max(0, (per100g[NUTRIENT_ID.PROTEIN] ?? 0) / 100),
+        carbs: Math.max(0, (per100g[NUTRIENT_ID.CARBS] ?? 0) / 100),
+        fat: Math.max(0, (per100g[NUTRIENT_ID.FAT] ?? 0) / 100),
+        fiber: Math.max(0, (per100g[NUTRIENT_ID.FIBER] ?? 0) / 100),
+        sugar: Math.max(0, (per100g[NUTRIENT_ID.SUGAR] ?? 0) / 100),
+        sodium: Math.max(0, (per100g[NUTRIENT_ID.SODIUM] ?? 0) / 100),
+      }
+    : {
+        calories: perServing.calories / gramsForFallback,
+        protein: perServing.protein / gramsForFallback,
+        carbs: perServing.carbs / gramsForFallback,
+        fat: perServing.fat / gramsForFallback,
+        fiber: perServing.fiber / gramsForFallback,
+        sugar: perServing.sugar / gramsForFallback,
+        sodium: perServing.sodium / gramsForFallback,
+      };
 
   return {
     fdcId: typeof f.fdcId === 'number' ? f.fdcId : 0,
@@ -117,15 +157,9 @@ export function normalizeUsdaFood(raw: unknown): UsdaNormalizedFood {
       f.householdServingFullText?.trim() ||
       (servingSize ? `${servingSize}${servingSizeUnit ?? 'g'}` : null),
     gtinUpc: f.gtinUpc ?? null,
-    perServing: {
-      calories: Math.max(0, perServing.calories),
-      protein: Math.max(0, perServing.protein),
-      carbs: Math.max(0, perServing.carbs),
-      fat: Math.max(0, perServing.fat),
-      fiber: Math.max(0, perServing.fiber),
-      sugar: Math.max(0, perServing.sugar),
-      sodium: Math.max(0, perServing.sodium),
-    },
+    perServing,
+    perGram,
+    isBranded: f.dataType === 'Branded',
   };
 }
 
@@ -245,7 +279,12 @@ export async function searchFoods(query: string, signal?: AbortSignal): Promise<
     signal,
   );
 
-  return (data.foods ?? []).map((food) => normalizeUsdaFood(food));
+  return (data.foods ?? [])
+    .map((food) => normalizeUsdaFood(food))
+    // USDA occasionally returns entries with no usable calorie data (e.g.
+    // incomplete branded submissions) — these are the "calories hi nahi ara"
+    // results; drop them rather than showing a food with 0 kcal.
+    .filter((food) => food.perServing.calories > 0 || food.perGram.calories > 0);
 }
 
 /**
