@@ -6,7 +6,7 @@
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "calorietracker",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "automatic",
     "ios": {
       "bundleIdentifier": "dev.notjust.caltrack",
       "supportsTablet": false,
@@ -35,7 +35,11 @@
         {
           "backgroundColor": "#FAF8F4",
           "image": "./assets/images/splash-icon.png",
-          "imageWidth": 96
+          "imageWidth": 96,
+          "dark": {
+            "backgroundColor": "#07090A",
+            "image": "./assets/images/splash-icon.png"
+          }
         }
       ],
       "@clerk/expo",
