@@ -10,7 +10,7 @@ import Animated, { FadeOut } from 'react-native-reanimated';
 import { BootSplash } from '@/components/boot-splash';
 import { usePurchases, PurchasesProvider } from '@/lib/purchases';
 import { AppProvider } from '@/lib/store';
-import { Colors } from '@/lib/theme';
+import { useColors } from '@/lib/theme';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -35,6 +35,7 @@ function IdentitySync() {
 
 export default function RootLayout() {
   const [showBoot, setShowBoot] = useState(true);
+  const colors = useColors();
 
   useEffect(() => {
     // Hand off from the native splash to our in-JS boot screen almost
@@ -55,11 +56,11 @@ export default function RootLayout() {
         <PurchasesProvider>
           <AppProvider>
             <IdentitySync />
-            <StatusBar style="dark" />
+            <StatusBar style={colors.statusBar} animated />
             <Stack
               screenOptions={{
                 headerShown: false,
-                contentStyle: { backgroundColor: Colors.bg },
+                contentStyle: { backgroundColor: colors.bg },
               }}>
               <Stack.Screen name="index" />
               <Stack.Screen name="(onboarding)" options={{ animation: 'fade' }} />

@@ -1,7 +1,7 @@
 import { useAuth, useUser } from '@clerk/expo';
 import { router } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -11,7 +11,7 @@ import { haptic } from '@/lib/haptics';
 import { isHealthSyncEnabled, requestHealthAccess, setHealthSyncEnabled } from '@/lib/health';
 import { areRemindersEnabled, disableReminders, enableReminders } from '@/lib/notifications';
 import { useApp } from '@/lib/store';
-import { Colors, MacroMeta, Radius, Spacing, Type } from '@/lib/theme';
+import { Radius, Spacing, ThemeColors, useColors, useMacroMeta, useTypeStyles } from '@/lib/theme';
 import { endLiveActivities } from '@/lib/widget-sync';
 
 export default function Settings() {
@@ -19,6 +19,10 @@ export default function Settings() {
   const { user } = useUser();
   const { signOut } = useAuth();
   const { goals, saveGoals } = useApp();
+  const colors = useColors();
+  const Type = useTypeStyles(colors);
+  const MacroMeta = useMacroMeta(colors);
+  const styles = useMemo(() => createStyles(colors, Type), [colors, Type]);
 
   const [healthOn, setHealthOn] = useState(isHealthSyncEnabled());
   const [remindersOn, setRemindersOn] = useState(areRemindersEnabled());
@@ -78,7 +82,7 @@ export default function Settings() {
           }}
           hitSlop={12}
           style={styles.backButton}>
-          <SymbolView name="chevron.left" size={17} tintColor={Colors.ink} weight="semibold" />
+          <SymbolView name="chevron.left" size={17} tintColor={colors.ink} weight="semibold" />
         </Pressable>
         <Text style={Type.heading}>Settings</Text>
         <View style={{ width: 36 }} />
@@ -105,7 +109,7 @@ export default function Settings() {
             value={goals.calories}
             unit="kcal"
             step={50}
-            color={Colors.ink}
+            color={colors.ink}
             onChange={(calories) => saveGoals({ ...goals, calories })}
           />
           <NutrientField
@@ -149,7 +153,7 @@ export default function Settings() {
           <View style={styles.rowDivider} />
           <ToggleRow
             icon="bell.badge.fill"
-            iconColor={Colors.carbs}
+            iconColor={colors.carbs}
             title="Meal reminders"
             subtitle="Gentle nudges at meal times"
             value={remindersOn}
@@ -162,7 +166,7 @@ export default function Settings() {
         <SectionLabel>Account</SectionLabel>
         <Card style={{ paddingVertical: Spacing.xs }}>
           <Pressable onPress={handleSignOut} style={styles.actionRow}>
-            <SymbolView name="rectangle.portrait.and.arrow.right" size={18} tintColor={Colors.danger} />
+            <SymbolView name="rectangle.portrait.and.arrow.right" size={18} tintColor={colors.danger} />
             <Text style={styles.signOutText}>Sign Out</Text>
           </Pressable>
         </Card>
@@ -188,6 +192,9 @@ function ToggleRow({
   value: boolean;
   onChange: (next: boolean) => void;
 }) {
+  const colors = useColors();
+  const Type = useTypeStyles(colors);
+  const styles = useMemo(() => createStyles(colors, Type), [colors, Type]);
   return (
     <View style={styles.toggleRow}>
       <View style={[styles.toggleIcon, { backgroundColor: `${iconColor}18` }]}>
@@ -197,15 +204,16 @@ function ToggleRow({
         <Text style={styles.toggleTitle}>{title}</Text>
         <Text style={styles.toggleSubtitle}>{subtitle}</Text>
       </View>
-      <Switch value={value} onValueChange={onChange} trackColor={{ true: Colors.green }} />
+      <Switch value={value} onValueChange={onChange} trackColor={{ true: colors.green }} />
     </View>
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors, Type: ReturnType<typeof useTypeStyles>) =>
+  StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.bg,
+    backgroundColor: colors.bg,
   },
   content: {
     paddingHorizontal: Spacing.screen,
@@ -220,9 +228,9 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: Radius.full,
-    backgroundColor: Colors.card,
+    backgroundColor: colors.card,
     borderWidth: 1,
-    borderColor: Colors.hairline,
+    borderColor: colors.hairline,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -236,27 +244,27 @@ const styles = StyleSheet.create({
     width: 46,
     height: 46,
     borderRadius: 23,
-    backgroundColor: Colors.ink,
+    backgroundColor: colors.accent,
     alignItems: 'center',
     justifyContent: 'center',
   },
   avatarText: {
-    color: '#FFFFFF',
+    color: colors.onAccent,
     fontSize: 18,
     fontWeight: '800',
   },
   profileName: {
     fontSize: 16,
     fontWeight: '700',
-    color: Colors.ink,
+    color: colors.ink,
   },
   profileEmail: {
     fontSize: 13,
-    color: Colors.inkSecondary,
+    color: colors.inkSecondary,
     marginTop: 1,
   },
   proPill: {
-    backgroundColor: Colors.greenSoft,
+    backgroundColor: colors.greenSoft,
     paddingVertical: 4,
     paddingHorizontal: 10,
     borderRadius: Radius.full,
@@ -264,7 +272,7 @@ const styles = StyleSheet.create({
   proPillText: {
     fontSize: 11,
     fontWeight: '800',
-    color: Colors.green,
+    color: colors.green,
     letterSpacing: 0.6,
   },
   section: {
@@ -286,16 +294,16 @@ const styles = StyleSheet.create({
   toggleTitle: {
     fontSize: 15,
     fontWeight: '600',
-    color: Colors.ink,
+    color: colors.ink,
   },
   toggleSubtitle: {
     fontSize: 12,
-    color: Colors.inkSecondary,
+    color: colors.inkSecondary,
     marginTop: 1,
   },
   rowDivider: {
     height: StyleSheet.hairlineWidth,
-    backgroundColor: Colors.hairline,
+    backgroundColor: colors.hairline,
   },
   actionRow: {
     flexDirection: 'row',
@@ -306,12 +314,12 @@ const styles = StyleSheet.create({
   signOutText: {
     fontSize: 15,
     fontWeight: '600',
-    color: Colors.danger,
+    color: colors.danger,
   },
   footerNote: {
     textAlign: 'center',
     fontSize: 12,
-    color: Colors.inkMuted,
+    color: colors.inkMuted,
     marginTop: Spacing.xxl,
   },
 });

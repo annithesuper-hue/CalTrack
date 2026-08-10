@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import Svg, { Line, Rect, Text as SvgText } from 'react-native-svg';
 
 import { weekdayLetter, todayKey } from '@/lib/dates';
-import { Colors, MacroMeta, Spacing } from '@/lib/theme';
+import { Spacing, ThemeColors, useColors, useMacroMeta } from '@/lib/theme';
 import type { DaySummary } from '@/lib/types';
 
 const PLOT_HEIGHT = 148;
@@ -22,6 +22,8 @@ function niceMax(value: number): number {
  * today's bar emphasized in ink and directly labeled.
  */
 export function CalorieBarChart({ data, goal }: { data: DaySummary[]; goal: number }) {
+  const colors = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [width, setWidth] = useState(0);
   const today = todayKey();
   const max = niceMax(Math.max(goal * 1.15, ...data.map((d) => d.calories)));
@@ -36,7 +38,7 @@ export function CalorieBarChart({ data, goal }: { data: DaySummary[]; goal: numb
         {width > 0 && (
           <Svg width={width} height={PLOT_HEIGHT}>
             {/* baseline */}
-            <Line x1={0} y1={PLOT_HEIGHT - 0.5} x2={width} y2={PLOT_HEIGHT - 0.5} stroke={Colors.hairline} strokeWidth={1} />
+            <Line x1={0} y1={PLOT_HEIGHT - 0.5} x2={width} y2={PLOT_HEIGHT - 0.5} stroke={colors.hairline} strokeWidth={1} />
             {data.map((d, i) => {
               const isToday = d.day === today;
               const h = Math.max(d.calories > 0 ? 3 : 0, (d.calories / max) * PLOT_HEIGHT);
@@ -51,19 +53,19 @@ export function CalorieBarChart({ data, goal }: { data: DaySummary[]; goal: numb
                       width={barW}
                       height={h + BAR_RADIUS}
                       rx={BAR_RADIUS}
-                      fill={isToday ? Colors.ink : Colors.green}
+                      fill={isToday ? colors.accent : colors.green}
                       opacity={isToday ? 1 : 0.85}
                     />
                   )}
                   {/* clip the rounded bottom back to the baseline */}
-                  {h > 0 && <Rect x={x} y={PLOT_HEIGHT} width={barW} height={BAR_RADIUS} fill={Colors.card} />}
+                  {h > 0 && <Rect x={x} y={PLOT_HEIGHT} width={barW} height={BAR_RADIUS} fill={colors.card} />}
                   {isToday && d.calories > 0 && (
                     <SvgText
                       x={x + barW / 2}
                       y={Math.max(10, y - 6)}
                       fontSize={11}
                       fontWeight="700"
-                      fill={Colors.ink}
+                      fill={colors.ink}
                       textAnchor="middle">
                       {Math.round(d.calories).toLocaleString()}
                     </SvgText>
@@ -72,8 +74,8 @@ export function CalorieBarChart({ data, goal }: { data: DaySummary[]; goal: numb
               );
             })}
             {/* goal reference line */}
-            <Line x1={0} y1={goalY} x2={width} y2={goalY} stroke={Colors.inkSecondary} strokeWidth={1.5} strokeDasharray="5,4" />
-            <SvgText x={width - 2} y={goalY - 5} fontSize={10} fontWeight="600" fill={Colors.inkSecondary} textAnchor="end">
+            <Line x1={0} y1={goalY} x2={width} y2={goalY} stroke={colors.inkSecondary} strokeWidth={1.5} strokeDasharray="5,4" />
+            <SvgText x={width - 2} y={goalY - 5} fontSize={10} fontWeight="600" fill={colors.inkSecondary} textAnchor="end">
               {`Goal ${goal.toLocaleString()}`}
             </SvgText>
           </Svg>
@@ -89,6 +91,9 @@ export function CalorieBarChart({ data, goal }: { data: DaySummary[]; goal: numb
  * gaps between segments. Legend rendered above the plot.
  */
 export function MacroStackChart({ data }: { data: DaySummary[] }) {
+  const colors = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+  const MacroMeta = useMacroMeta(colors);
   const [width, setWidth] = useState(0);
   const today = todayKey();
   const max = niceMax(Math.max(1, ...data.map((d) => d.protein + d.carbs + d.fat)));
@@ -109,7 +114,7 @@ export function MacroStackChart({ data }: { data: DaySummary[] }) {
       <View onLayout={(e) => setWidth(e.nativeEvent.layout.width)}>
         {width > 0 && (
           <Svg width={width} height={PLOT_HEIGHT}>
-            <Line x1={0} y1={PLOT_HEIGHT - 0.5} x2={width} y2={PLOT_HEIGHT - 0.5} stroke={Colors.hairline} strokeWidth={1} />
+            <Line x1={0} y1={PLOT_HEIGHT - 0.5} x2={width} y2={PLOT_HEIGHT - 0.5} stroke={colors.hairline} strokeWidth={1} />
             {data.map((d, i) => {
               const x = i * (barW + gap);
               const segments = [
@@ -152,13 +157,15 @@ export function MacroStackChart({ data }: { data: DaySummary[] }) {
 }
 
 function AxisLabels({ data }: { data: DaySummary[] }) {
+  const colors = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const today = todayKey();
   return (
     <View style={styles.axisRow}>
       {data.map((d) => (
         <Text
           key={d.day}
-          style={[styles.axisLabel, d.day === today && { color: Colors.ink, fontWeight: '700' }]}>
+          style={[styles.axisLabel, d.day === today && { color: colors.ink, fontWeight: '700' }]}>
           {weekdayLetter(d.day)}
         </Text>
       ))}
@@ -167,6 +174,8 @@ function AxisLabels({ data }: { data: DaySummary[] }) {
 }
 
 export function StatTile({ label, value, unit }: { label: string; value: string; unit?: string }) {
+  const colors = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   return (
     <View style={styles.statTile}>
       <Text style={styles.statValue}>
@@ -178,64 +187,65 @@ export function StatTile({ label, value, unit }: { label: string; value: string;
   );
 }
 
-const styles = StyleSheet.create({
-  axisRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 6,
-  },
-  axisLabel: {
-    flex: 1,
-    textAlign: 'center',
-    fontSize: 11,
-    fontWeight: '500',
-    color: Colors.inkMuted,
-  },
-  legendRow: {
-    flexDirection: 'row',
-    gap: Spacing.lg,
-    marginBottom: Spacing.md,
-  },
-  legendItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  legendChip: {
-    width: 10,
-    height: 10,
-    borderRadius: 3,
-  },
-  legendText: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: Colors.inkSecondary,
-  },
-  statTile: {
-    flex: 1,
-    backgroundColor: Colors.card,
-    borderRadius: 16,
-    paddingVertical: Spacing.lg,
-    paddingHorizontal: Spacing.md,
-    alignItems: 'center',
-    gap: 2,
-  },
-  statValue: {
-    fontSize: 20,
-    fontWeight: '800',
-    color: Colors.ink,
-    fontVariant: ['tabular-nums'],
-    letterSpacing: -0.4,
-  },
-  statUnit: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: Colors.inkMuted,
-    letterSpacing: 0,
-  },
-  statLabel: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: Colors.inkSecondary,
-  },
-});
+const createStyles = (colors: ThemeColors) =>
+  StyleSheet.create({
+    axisRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      marginTop: 6,
+    },
+    axisLabel: {
+      flex: 1,
+      textAlign: 'center',
+      fontSize: 11,
+      fontWeight: '500',
+      color: colors.inkMuted,
+    },
+    legendRow: {
+      flexDirection: 'row',
+      gap: Spacing.lg,
+      marginBottom: Spacing.md,
+    },
+    legendItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+    },
+    legendChip: {
+      width: 10,
+      height: 10,
+      borderRadius: 3,
+    },
+    legendText: {
+      fontSize: 12,
+      fontWeight: '500',
+      color: colors.inkSecondary,
+    },
+    statTile: {
+      flex: 1,
+      backgroundColor: colors.card,
+      borderRadius: 16,
+      paddingVertical: Spacing.lg,
+      paddingHorizontal: Spacing.md,
+      alignItems: 'center',
+      gap: 2,
+    },
+    statValue: {
+      fontSize: 20,
+      fontWeight: '800',
+      color: colors.ink,
+      fontVariant: ['tabular-nums'],
+      letterSpacing: -0.4,
+    },
+    statUnit: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: colors.inkMuted,
+      letterSpacing: 0,
+    },
+    statLabel: {
+      fontSize: 12,
+      fontWeight: '500',
+      color: colors.inkSecondary,
+    },
+  });

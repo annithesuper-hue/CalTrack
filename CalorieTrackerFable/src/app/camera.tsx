@@ -4,7 +4,7 @@ import { Image } from 'expo-image';
 import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
 import { router } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -29,7 +29,7 @@ import { ApiError, friendlyErrorMessage } from '@/lib/api-client';
 import { haptic } from '@/lib/haptics';
 import { inferMealTypeFromHour } from '@/lib/meal-type';
 import { useApp } from '@/lib/store';
-import { Colors, MacroMeta, Radius, Shadow, Spacing, Type } from '@/lib/theme';
+import { Radius, Spacing, ThemeColors, useColors, useMacroMeta, useShadow, useTypeStyles } from '@/lib/theme';
 import type { AnalysisResult, MealType } from '@/lib/types';
 
 type Phase = 'camera' | 'analyzing' | 'result' | 'error';
@@ -39,6 +39,11 @@ export default function Camera() {
   const [permission, requestPermission] = useCameraPermissions();
   const cameraRef = useRef<CameraView>(null);
   const { logMeal } = useApp();
+  const colors = useColors();
+  const shadow = useShadow();
+  const Type = useTypeStyles(colors);
+  const MacroMeta = useMacroMeta(colors);
+  const styles = useMemo(() => createStyles(colors, shadow, Type), [colors, shadow, Type]);
 
   const [phase, setPhase] = useState<Phase>('camera');
   const [photoUri, setPhotoUri] = useState<string | null>(null);
@@ -204,9 +209,9 @@ export default function Camera() {
                 value={result.name}
                 onChangeText={(name) => setResult({ ...result, name })}
                 placeholder="Meal name"
-                placeholderTextColor={Colors.inkMuted}
+                placeholderTextColor={colors.inkMuted}
               />
-              <SymbolView name="pencil" size={16} tintColor={Colors.inkMuted} />
+              <SymbolView name="pencil" size={16} tintColor={colors.inkMuted} />
             </View>
 
             {result.items.length > 0 && (
@@ -245,7 +250,7 @@ export default function Camera() {
               value={result.calories}
               unit="kcal"
               step={10}
-              color={Colors.ink}
+              color={colors.ink}
               onChange={(calories) => setResult({ ...result, calories })}
             />
             <NutrientField
@@ -278,7 +283,7 @@ export default function Camera() {
 
         <View style={[styles.resultFooter, { paddingBottom: insets.bottom + Spacing.md }]}>
           <Pressable onPress={retake} style={styles.retakeButton}>
-            <SymbolView name="arrow.counterclockwise" size={18} tintColor={Colors.ink} />
+            <SymbolView name="arrow.counterclockwise" size={18} tintColor={colors.ink} />
           </Pressable>
           <Button title="Log Meal" onPress={save} style={{ flex: 1 }} />
         </View>
@@ -313,7 +318,7 @@ export default function Camera() {
       {phase === 'analyzing' && (
         <Animated.View entering={FadeIn} style={styles.analyzingOverlay}>
           <View style={styles.analyzingCard}>
-            <ActivityIndicator color={Colors.ink} />
+            <ActivityIndicator color={colors.ink} />
             <Text style={styles.analyzingTitle}>Analyzing your meal…</Text>
             <Text style={styles.analyzingSubtitle}>Identifying ingredients and estimating macros</Text>
           </View>
@@ -323,7 +328,7 @@ export default function Camera() {
       {phase === 'error' && (
         <Animated.View entering={FadeIn} style={styles.analyzingOverlay}>
           <View style={styles.analyzingCard}>
-            <SymbolView name="exclamationmark.triangle.fill" size={30} tintColor={Colors.carbs} />
+            <SymbolView name="exclamationmark.triangle.fill" size={30} tintColor={colors.carbs} />
             <Text style={styles.analyzingTitle}>Hmm, that didn't work</Text>
             <Text style={styles.analyzingSubtitle}>{errorMessage}</Text>
             <Button title="Try Again" onPress={retryAnalysis} style={{ alignSelf: 'stretch', marginTop: Spacing.sm }} />
@@ -346,6 +351,10 @@ export default function Camera() {
 }
 
 function CloseButton({ onPress, top }: { onPress: () => void; top: number }) {
+  const colors = useColors();
+  const shadow = useShadow();
+  const Type = useTypeStyles(colors);
+  const styles = useMemo(() => createStyles(colors, shadow, Type), [colors, shadow, Type]);
   return (
     <Pressable onPress={onPress} hitSlop={10} style={[styles.closeButton, { top: top + Spacing.sm }]}>
       <SymbolView name="xmark" size={16} tintColor="#FFFFFF" weight="semibold" />
@@ -354,10 +363,15 @@ function CloseButton({ onPress, top }: { onPress: () => void; top: number }) {
 }
 
 function Corner({ style }: { style: object }) {
+  const colors = useColors();
+  const shadow = useShadow();
+  const Type = useTypeStyles(colors);
+  const styles = useMemo(() => createStyles(colors, shadow, Type), [colors, shadow, Type]);
   return <View style={[styles.corner, style]} />;
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors, Shadow: ReturnType<typeof useShadow>, Type: ReturnType<typeof useTypeStyles>) =>
+  StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#0E0D0A',
@@ -451,13 +465,13 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: Colors.overlay,
+    backgroundColor: colors.overlay,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: Spacing.xxl,
   },
   analyzingCard: {
-    backgroundColor: Colors.card,
+    backgroundColor: colors.card,
     borderRadius: Radius.xl,
     paddingVertical: Spacing.xxl,
     paddingHorizontal: Spacing.xl,
@@ -469,24 +483,24 @@ const styles = StyleSheet.create({
   analyzingTitle: {
     fontSize: 17,
     fontWeight: '700',
-    color: Colors.ink,
+    color: colors.ink,
     marginTop: Spacing.xs,
   },
   analyzingSubtitle: {
     fontSize: 13,
-    color: Colors.inkSecondary,
+    color: colors.inkSecondary,
     textAlign: 'center',
     lineHeight: 19,
   },
   retakeLink: {
     fontSize: 13,
     fontWeight: '600',
-    color: Colors.inkSecondary,
+    color: colors.inkSecondary,
     textDecorationLine: 'underline',
   },
   resultContainer: {
     flex: 1,
-    backgroundColor: Colors.bg,
+    backgroundColor: colors.bg,
   },
   resultContent: {
     paddingHorizontal: Spacing.screen,
@@ -518,7 +532,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   resultCard: {
-    backgroundColor: Colors.card,
+    backgroundColor: colors.card,
     borderRadius: Radius.xl,
     padding: Spacing.xl,
     ...Shadow.card,
@@ -543,7 +557,7 @@ const styles = StyleSheet.create({
     marginTop: Spacing.md,
   },
   itemChip: {
-    backgroundColor: Colors.bg,
+    backgroundColor: colors.bg,
     borderRadius: Radius.full,
     paddingVertical: 6,
     paddingHorizontal: 12,
@@ -551,7 +565,7 @@ const styles = StyleSheet.create({
   itemChipText: {
     fontSize: 12,
     fontWeight: '500',
-    color: Colors.inkSecondary,
+    color: colors.inkSecondary,
   },
   badgeRow: {
     marginTop: Spacing.md,
@@ -564,12 +578,12 @@ const styles = StyleSheet.create({
   },
   fieldsDivider: {
     height: StyleSheet.hairlineWidth,
-    backgroundColor: Colors.hairline,
+    backgroundColor: colors.hairline,
     marginVertical: Spacing.md,
   },
   editHint: {
     fontSize: 12,
-    color: Colors.inkMuted,
+    color: colors.inkMuted,
     marginTop: Spacing.sm,
   },
   resultFooter: {
@@ -581,15 +595,15 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
     paddingHorizontal: Spacing.screen,
     paddingTop: Spacing.md,
-    backgroundColor: Colors.bg,
+    backgroundColor: colors.bg,
   },
   retakeButton: {
     width: 56,
     height: 56,
     borderRadius: Radius.lg,
-    backgroundColor: Colors.card,
+    backgroundColor: colors.card,
     borderWidth: 1,
-    borderColor: Colors.hairline,
+    borderColor: colors.hairline,
     alignItems: 'center',
     justifyContent: 'center',
   },

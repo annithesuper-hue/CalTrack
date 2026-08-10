@@ -1,9 +1,9 @@
 import { SymbolView } from 'expo-symbols';
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { haptic } from '@/lib/haptics';
-import { Colors, Radius, Spacing } from '@/lib/theme';
+import { Radius, Spacing, ThemeColors, useColors } from '@/lib/theme';
 
 type PortionCorrectionProps = {
   estimatedGrams: number | null;
@@ -27,6 +27,8 @@ export function PortionCorrection({ estimatedGrams, countable, onScale }: Portio
 }
 
 function WeightCorrection({ estimatedGrams, onScale }: { estimatedGrams: number; onScale: (ratio: number) => void }) {
+  const colors = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [text, setText] = useState(String(estimatedGrams));
 
   const commit = (raw: string) => {
@@ -40,7 +42,7 @@ function WeightCorrection({ estimatedGrams, onScale }: { estimatedGrams: number;
   return (
     <View style={styles.wrap}>
       <View style={styles.labelRow}>
-        <SymbolView name="scalemass" size={13} tintColor={Colors.inkSecondary} />
+        <SymbolView name="scalemass" size={13} tintColor={colors.inkSecondary} />
         <Text style={styles.label}>Know the actual weight? AI guessed ~{estimatedGrams}g</Text>
       </View>
       <View style={styles.inputRow}>
@@ -64,6 +66,8 @@ function CountCorrection({
   countable: { estimatedCount: number; unitLabel: string };
   onScale: (ratio: number) => void;
 }) {
+  const colors = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [count, setCount] = useState(countable.estimatedCount);
 
   const bump = (delta: number) => {
@@ -78,91 +82,92 @@ function CountCorrection({
   return (
     <View style={styles.wrap}>
       <View style={styles.labelRow}>
-        <SymbolView name="number" size={13} tintColor={Colors.inkSecondary} />
+        <SymbolView name="number" size={13} tintColor={colors.inkSecondary} />
         <Text style={styles.label}>
           Hard to tell from the photo — AI guessed {countable.estimatedCount} {countable.unitLabel}
           {countable.estimatedCount === 1 ? '' : 's'}
         </Text>
       </View>
       <View style={styles.countRow}>
-        <Pressable onPress={() => bump(-1)} hitSlop={8} style={({ pressed }) => [styles.stepper, pressed && { backgroundColor: Colors.cardPressed }]}>
-          <SymbolView name="minus" size={14} tintColor={Colors.ink} />
+        <Pressable onPress={() => bump(-1)} hitSlop={8} style={({ pressed }) => [styles.stepper, pressed && { backgroundColor: colors.cardPressed }]}>
+          <SymbolView name="minus" size={14} tintColor={colors.ink} />
         </Pressable>
         <Text style={styles.countValue}>
           {count} {label}
         </Text>
-        <Pressable onPress={() => bump(1)} hitSlop={8} style={({ pressed }) => [styles.stepper, pressed && { backgroundColor: Colors.cardPressed }]}>
-          <SymbolView name="plus" size={14} tintColor={Colors.ink} />
+        <Pressable onPress={() => bump(1)} hitSlop={8} style={({ pressed }) => [styles.stepper, pressed && { backgroundColor: colors.cardPressed }]}>
+          <SymbolView name="plus" size={14} tintColor={colors.ink} />
         </Pressable>
       </View>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  wrap: {
-    backgroundColor: Colors.bg,
-    borderRadius: Radius.md,
-    borderWidth: 1,
-    borderColor: Colors.hairline,
-    padding: Spacing.md,
-    gap: Spacing.sm,
-  },
-  labelRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  label: {
-    flex: 1,
-    fontSize: 12,
-    fontWeight: '600',
-    color: Colors.inkSecondary,
-  },
-  inputRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  input: {
-    flex: 1,
-    fontSize: 16,
-    fontWeight: '700',
-    color: Colors.ink,
-    fontVariant: ['tabular-nums'],
-    backgroundColor: Colors.card,
-    borderRadius: Radius.sm,
-    borderWidth: 1,
-    borderColor: Colors.hairline,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-  },
-  unit: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: Colors.inkMuted,
-  },
-  countRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 14,
-  },
-  stepper: {
-    width: 34,
-    height: 34,
-    borderRadius: Radius.full,
-    backgroundColor: Colors.card,
-    borderWidth: 1,
-    borderColor: Colors.hairline,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  countValue: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: Colors.ink,
-    minWidth: 90,
-    textAlign: 'center',
-  },
-});
+const createStyles = (colors: ThemeColors) =>
+  StyleSheet.create({
+    wrap: {
+      backgroundColor: colors.bg,
+      borderRadius: Radius.md,
+      borderWidth: 1,
+      borderColor: colors.hairline,
+      padding: Spacing.md,
+      gap: Spacing.sm,
+    },
+    labelRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+    },
+    label: {
+      flex: 1,
+      fontSize: 12,
+      fontWeight: '600',
+      color: colors.inkSecondary,
+    },
+    inputRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+    },
+    input: {
+      flex: 1,
+      fontSize: 16,
+      fontWeight: '700',
+      color: colors.ink,
+      fontVariant: ['tabular-nums'],
+      backgroundColor: colors.card,
+      borderRadius: Radius.sm,
+      borderWidth: 1,
+      borderColor: colors.hairline,
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+    },
+    unit: {
+      fontSize: 13,
+      fontWeight: '700',
+      color: colors.inkMuted,
+    },
+    countRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 14,
+    },
+    stepper: {
+      width: 34,
+      height: 34,
+      borderRadius: Radius.full,
+      backgroundColor: colors.card,
+      borderWidth: 1,
+      borderColor: colors.hairline,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    countValue: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: colors.ink,
+      minWidth: 90,
+      textAlign: 'center',
+    },
+  });

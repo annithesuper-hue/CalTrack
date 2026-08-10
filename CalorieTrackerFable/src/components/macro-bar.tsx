@@ -1,8 +1,8 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 
-import { Colors, Radius, Type } from '@/lib/theme';
+import { Radius, ThemeColors, useColors } from '@/lib/theme';
 
 type MacroBarProps = {
   label: string;
@@ -14,6 +14,8 @@ type MacroBarProps = {
 
 /** Labeled horizontal progress bar for one macro. */
 export function MacroBar({ label, value, target, color, softColor }: MacroBarProps) {
+  const colors = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const fraction = Math.min(1, target > 0 ? value / target : 0);
   const width = useSharedValue(0);
 
@@ -32,8 +34,8 @@ export function MacroBar({ label, value, target, color, softColor }: MacroBarPro
           {label}
         </Text>
         <Text style={styles.valueText} numberOfLines={1}>
-          <Text style={{ color: Colors.ink, fontWeight: '700' }}>{Math.round(value)}</Text>
-          <Text style={{ color: Colors.inkMuted }}>/{target}g</Text>
+          <Text style={{ color: colors.ink, fontWeight: '700' }}>{Math.round(value)}</Text>
+          <Text style={{ color: colors.inkMuted }}>/{target}g</Text>
         </Text>
       </View>
       <View style={[styles.track, { backgroundColor: softColor }]}>
@@ -43,34 +45,35 @@ export function MacroBar({ label, value, target, color, softColor }: MacroBarPro
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    gap: 6,
-  },
-  labelRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'baseline',
-    gap: 4,
-  },
-  labelText: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: Colors.inkSecondary,
-    flexShrink: 1,
-  },
-  valueText: {
-    fontSize: 12,
-    fontVariant: ['tabular-nums'],
-  },
-  track: {
-    height: 8,
-    borderRadius: Radius.full,
-    overflow: 'hidden',
-  },
-  fill: {
-    height: '100%',
-    borderRadius: Radius.full,
-  },
-});
+const createStyles = (colors: ThemeColors) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      gap: 6,
+    },
+    labelRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'baseline',
+      gap: 4,
+    },
+    labelText: {
+      fontSize: 12,
+      fontWeight: '500',
+      color: colors.inkSecondary,
+      flexShrink: 1,
+    },
+    valueText: {
+      fontSize: 12,
+      fontVariant: ['tabular-nums'],
+    },
+    track: {
+      height: 8,
+      borderRadius: Radius.full,
+      overflow: 'hidden',
+    },
+    fill: {
+      height: '100%',
+      borderRadius: Radius.full,
+    },
+  });

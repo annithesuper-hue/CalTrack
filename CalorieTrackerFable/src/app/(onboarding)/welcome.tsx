@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -8,10 +8,15 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ring } from '@/components/ring';
 import { Button } from '@/components/ui';
 import { haptic } from '@/lib/haptics';
-import { Colors, MacroMeta, Radius, Shadow, Spacing, Type } from '@/lib/theme';
+import { Radius, Spacing, ThemeColors, useColors, useMacroMeta, useShadow, useTypeStyles } from '@/lib/theme';
 
 export default function Welcome() {
   const insets = useSafeAreaInsets();
+  const colors = useColors();
+  const shadow = useShadow();
+  const Type = useTypeStyles(colors);
+  const MacroMeta = useMacroMeta(colors);
+  const styles = useMemo(() => createStyles(colors, shadow, Type), [colors, shadow, Type]);
 
   useEffect(() => {
     haptic.tap();
@@ -35,7 +40,7 @@ export default function Welcome() {
           ))}
         </View>
         <View style={styles.scanBadge}>
-          <SymbolView name="camera.fill" size={15} tintColor="#FFFFFF" />
+          <SymbolView name="camera.fill" size={15} tintColor={colors.onAccent} />
           <Text style={styles.scanBadgeText}>Scanned in 3s</Text>
         </View>
       </Animated.View>
@@ -61,87 +66,88 @@ export default function Welcome() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.bg,
-    paddingHorizontal: Spacing.screen,
-  },
-  heroCard: {
-    flex: 1,
-    backgroundColor: Colors.card,
-    borderRadius: Radius.xl + 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: Spacing.xl,
-    ...Shadow.card,
-  },
-  heroKcal: {
-    fontSize: 30,
-    fontWeight: '800',
-    color: Colors.ink,
-    fontVariant: ['tabular-nums'],
-    letterSpacing: -0.8,
-  },
-  heroKcalLabel: {
-    fontSize: 13,
-    color: Colors.inkSecondary,
-    fontWeight: '500',
-  },
-  heroMacros: {
-    flexDirection: 'row',
-    gap: Spacing.lg,
-  },
-  heroMacro: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  heroChip: {
-    width: 10,
-    height: 10,
-    borderRadius: 3,
-  },
-  heroMacroText: {
-    fontSize: 13,
-    fontWeight: '500',
-    color: Colors.inkSecondary,
-  },
-  scanBadge: {
-    position: 'absolute',
-    top: Spacing.xl,
-    right: Spacing.xl,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: Colors.ink,
-    borderRadius: Radius.full,
-    paddingVertical: 8,
-    paddingHorizontal: 14,
-    ...Shadow.float,
-  },
-  scanBadgeText: {
-    color: '#FFFFFF',
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  textBlock: {
-    paddingTop: Spacing.xxl,
-    gap: Spacing.md,
-  },
-  title: {
-    ...Type.title,
-    fontSize: 34,
-    lineHeight: 38,
-    letterSpacing: -1,
-  },
-  subtitle: {
-    ...Type.secondary,
-    fontSize: 16,
-    lineHeight: 23,
-  },
-  actions: {
-    paddingTop: Spacing.xl,
-    gap: Spacing.xs,
-  },
-});
+const createStyles = (colors: ThemeColors, Shadow: ReturnType<typeof useShadow>, Type: ReturnType<typeof useTypeStyles>) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.bg,
+      paddingHorizontal: Spacing.screen,
+    },
+    heroCard: {
+      flex: 1,
+      backgroundColor: colors.card,
+      borderRadius: Radius.xl + 8,
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: Spacing.xl,
+      ...Shadow.card,
+    },
+    heroKcal: {
+      fontSize: 30,
+      fontWeight: '800',
+      color: colors.ink,
+      fontVariant: ['tabular-nums'],
+      letterSpacing: -0.8,
+    },
+    heroKcalLabel: {
+      fontSize: 13,
+      color: colors.inkSecondary,
+      fontWeight: '500',
+    },
+    heroMacros: {
+      flexDirection: 'row',
+      gap: Spacing.lg,
+    },
+    heroMacro: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+    },
+    heroChip: {
+      width: 10,
+      height: 10,
+      borderRadius: 3,
+    },
+    heroMacroText: {
+      fontSize: 13,
+      fontWeight: '500',
+      color: colors.inkSecondary,
+    },
+    scanBadge: {
+      position: 'absolute',
+      top: Spacing.xl,
+      right: Spacing.xl,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      backgroundColor: colors.accent,
+      borderRadius: Radius.full,
+      paddingVertical: 8,
+      paddingHorizontal: 14,
+      ...Shadow.float,
+    },
+    scanBadgeText: {
+      color: colors.onAccent,
+      fontSize: 13,
+      fontWeight: '600',
+    },
+    textBlock: {
+      paddingTop: Spacing.xxl,
+      gap: Spacing.md,
+    },
+    title: {
+      ...Type.title,
+      fontSize: 34,
+      lineHeight: 38,
+      letterSpacing: -1,
+    },
+    subtitle: {
+      ...Type.secondary,
+      fontSize: 16,
+      lineHeight: 23,
+    },
+    actions: {
+      paddingTop: Spacing.xl,
+      gap: Spacing.xs,
+    },
+  });

@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { NutrientField } from '@/components/nutrient-field';
@@ -7,11 +7,13 @@ import { OnboardingScreen } from '@/components/onboarding-screen';
 import { Card } from '@/components/ui';
 import { haptic } from '@/lib/haptics';
 import { draft } from '@/lib/onboarding-draft';
-import { Colors, Radius, Spacing } from '@/lib/theme';
+import { Radius, Spacing, ThemeColors, useColors } from '@/lib/theme';
 import type { Sex } from '@/lib/types';
 import { Pressable } from 'react-native';
 
 export default function About() {
+  const colors = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [sex, setSex] = useState<Sex>(draft.sex);
   const [age, setAge] = useState(draft.age);
   const [heightCm, setHeightCm] = useState(draft.heightCm);
@@ -40,41 +42,42 @@ export default function About() {
               setSex(o.value);
             }}
             style={[styles.sexOption, sex === o.value && styles.sexOptionSelected]}>
-            <Text style={[styles.sexText, sex === o.value && { color: '#FFFFFF' }]}>{o.label}</Text>
+            <Text style={[styles.sexText, sex === o.value && { color: colors.onAccent }]}>{o.label}</Text>
           </Pressable>
         ))}
       </View>
       <Card style={{ paddingVertical: Spacing.sm }}>
-        <NutrientField label="Age" value={age} unit="yrs" step={1} color={Colors.inkMuted} onChange={setAge} />
-        <NutrientField label="Height" value={heightCm} unit="cm" step={1} color={Colors.inkMuted} onChange={setHeightCm} />
-        <NutrientField label="Weight" value={weightKg} unit="kg" step={1} color={Colors.inkMuted} onChange={setWeightKg} />
+        <NutrientField label="Age" value={age} unit="yrs" step={1} color={colors.inkMuted} onChange={setAge} />
+        <NutrientField label="Height" value={heightCm} unit="cm" step={1} color={colors.inkMuted} onChange={setHeightCm} />
+        <NutrientField label="Weight" value={weightKg} unit="kg" step={1} color={colors.inkMuted} onChange={setWeightKg} />
       </Card>
     </OnboardingScreen>
   );
 }
 
-const styles = StyleSheet.create({
-  sexRow: {
-    flexDirection: 'row',
-    gap: Spacing.md,
-  },
-  sexOption: {
-    flex: 1,
-    height: 52,
-    borderRadius: Radius.lg,
-    backgroundColor: Colors.card,
-    borderWidth: 1,
-    borderColor: Colors.hairline,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  sexOptionSelected: {
-    backgroundColor: Colors.ink,
-    borderColor: Colors.ink,
-  },
-  sexText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: Colors.ink,
-  },
-});
+const createStyles = (colors: ThemeColors) =>
+  StyleSheet.create({
+    sexRow: {
+      flexDirection: 'row',
+      gap: Spacing.md,
+    },
+    sexOption: {
+      flex: 1,
+      height: 52,
+      borderRadius: Radius.lg,
+      backgroundColor: colors.card,
+      borderWidth: 1,
+      borderColor: colors.hairline,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    sexOptionSelected: {
+      backgroundColor: colors.accent,
+      borderColor: colors.accent,
+    },
+    sexText: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: colors.ink,
+    },
+  });

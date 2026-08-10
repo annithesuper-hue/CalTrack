@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -20,12 +20,17 @@ import { MealTypePicker } from '@/components/meal-type-picker';
 import { haptic } from '@/lib/haptics';
 import { inferMealTypeFromHour } from '@/lib/meal-type';
 import { useApp } from '@/lib/store';
-import { Colors, MacroMeta, Radius, Shadow, Spacing, Type } from '@/lib/theme';
+import { Radius, Spacing, ThemeColors, useColors, useMacroMeta, useShadow, useTypeStyles } from '@/lib/theme';
 import type { MealType } from '@/lib/types';
 
 export default function ManualEntry() {
   const insets = useSafeAreaInsets();
   const { logMeal, editMeal } = useApp();
+  const colors = useColors();
+  const shadow = useShadow();
+  const Type = useTypeStyles(colors);
+  const MacroMeta = useMacroMeta(colors);
+  const styles = useMemo(() => createStyles(colors, shadow, Type), [colors, shadow, Type]);
 
   const [name, setName] = useState('');
   const [servingNote, setServingNote] = useState('');
@@ -76,7 +81,7 @@ export default function ManualEntry() {
         <View style={styles.header}>
           <Text style={styles.title}>Add Manually</Text>
           <Pressable onPress={close} hitSlop={10} style={styles.closeButton}>
-            <SymbolView name="xmark" size={15} tintColor={Colors.ink} weight="semibold" />
+            <SymbolView name="xmark" size={15} tintColor={colors.ink} weight="semibold" />
           </Pressable>
         </View>
 
@@ -87,7 +92,7 @@ export default function ManualEntry() {
             value={name}
             onChangeText={setName}
             placeholder="e.g. Homemade chili"
-            placeholderTextColor={Colors.inkMuted}
+            placeholderTextColor={colors.inkMuted}
             autoFocus
           />
 
@@ -97,12 +102,12 @@ export default function ManualEntry() {
             value={servingNote}
             onChangeText={setServingNote}
             placeholder="e.g. 1 bowl, 250g"
-            placeholderTextColor={Colors.inkMuted}
+            placeholderTextColor={colors.inkMuted}
           />
 
           <View style={styles.fieldsDivider} />
 
-          <NutrientField label="Calories" value={calories} unit="kcal" step={10} color={Colors.ink} onChange={setCalories} />
+          <NutrientField label="Calories" value={calories} unit="kcal" step={10} color={colors.ink} onChange={setCalories} />
           <NutrientField label="Protein" value={protein} unit="g" step={5} color={MacroMeta.protein.color} onChange={setProtein} />
           <NutrientField label="Carbs" value={carbs} unit="g" step={5} color={MacroMeta.carbs.color} onChange={setCarbs} />
           <NutrientField label="Fat" value={fat} unit="g" step={5} color={MacroMeta.fat.color} onChange={setFat} />
@@ -123,10 +128,11 @@ export default function ManualEntry() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors, Shadow: ReturnType<typeof useShadow>, Type: ReturnType<typeof useTypeStyles>) =>
+  StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.bg,
+    backgroundColor: colors.bg,
   },
   content: {
     paddingHorizontal: Spacing.screen,
@@ -145,14 +151,14 @@ const styles = StyleSheet.create({
     width: 34,
     height: 34,
     borderRadius: Radius.full,
-    backgroundColor: Colors.card,
+    backgroundColor: colors.card,
     borderWidth: 1,
-    borderColor: Colors.hairline,
+    borderColor: colors.hairline,
     alignItems: 'center',
     justifyContent: 'center',
   },
   card: {
-    backgroundColor: Colors.card,
+    backgroundColor: colors.card,
     borderRadius: Radius.xl,
     padding: Spacing.xl,
     ...Shadow.card,
@@ -160,7 +166,7 @@ const styles = StyleSheet.create({
   fieldLabel: {
     fontSize: 12,
     fontWeight: '600',
-    color: Colors.inkMuted,
+    color: colors.inkMuted,
     textTransform: 'uppercase',
     letterSpacing: 0.4,
     marginBottom: 6,
@@ -170,11 +176,11 @@ const styles = StyleSheet.create({
     fontSize: 17,
     paddingVertical: 8,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: Colors.hairline,
+    borderBottomColor: colors.hairline,
   },
   fieldsDivider: {
     height: StyleSheet.hairlineWidth,
-    backgroundColor: Colors.hairline,
+    backgroundColor: colors.hairline,
     marginVertical: Spacing.lg,
   },
   badgeRow: {
@@ -187,7 +193,7 @@ const styles = StyleSheet.create({
     right: 0,
     paddingHorizontal: Spacing.screen,
     paddingTop: Spacing.md,
-    backgroundColor: Colors.bg,
+    backgroundColor: colors.bg,
     flexDirection: 'row',
   },
 });

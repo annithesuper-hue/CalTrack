@@ -10,7 +10,7 @@ import { Button } from '@/components/ui';
 import { haptic } from '@/lib/haptics';
 import { enableReminders } from '@/lib/notifications';
 import { usePurchases } from '@/lib/purchases';
-import { Colors, Radius, Shadow, Spacing, Type } from '@/lib/theme';
+import { Radius, Spacing, ThemeColors, useColors, useShadow, useTypeStyles } from '@/lib/theme';
 
 const FEATURES = [
   { icon: 'camera.viewfinder', title: 'Unlimited photo scans', subtitle: 'Log any meal with one picture' },
@@ -22,6 +22,10 @@ const FEATURES = [
 export default function Paywall() {
   const insets = useSafeAreaInsets();
   const { packages, purchase, restore } = usePurchases();
+  const colors = useColors();
+  const shadow = useShadow();
+  const Type = useTypeStyles(colors);
+  const styles = useMemo(() => createStyles(colors, shadow, Type), [colors, shadow, Type]);
   const [purchasing, setPurchasing] = useState(false);
 
   const weekly = useMemo(() => packages.find((p) => p.packageType === 'WEEKLY'), [packages]);
@@ -68,7 +72,7 @@ export default function Paywall() {
         showsVerticalScrollIndicator={false}>
         <Animated.View entering={FadeInDown.duration(400)} style={styles.header}>
           <View style={styles.proBadge}>
-            <SymbolView name="sparkles" size={14} tintColor={Colors.green} />
+            <SymbolView name="sparkles" size={14} tintColor={colors.green} />
             <Text style={styles.proBadgeText}>CALTRACK PRO</Text>
           </View>
           <Text style={styles.title}>Reach your goal{'\n'}3× faster</Text>
@@ -81,13 +85,13 @@ export default function Paywall() {
           {FEATURES.map((f) => (
             <View key={f.title} style={styles.featureRow}>
               <View style={styles.featureIcon}>
-                <SymbolView name={f.icon} size={17} tintColor={Colors.ink} />
+                <SymbolView name={f.icon} size={17} tintColor={colors.ink} />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.featureTitle}>{f.title}</Text>
                 <Text style={styles.featureSubtitle}>{f.subtitle}</Text>
               </View>
-              <SymbolView name="checkmark" size={14} tintColor={Colors.green} weight="bold" />
+              <SymbolView name="checkmark" size={14} tintColor={colors.green} weight="bold" />
             </View>
           ))}
         </Animated.View>
@@ -156,6 +160,10 @@ function PlanCard({
   selected: boolean;
   onPress: () => void;
 }) {
+  const colors = useColors();
+  const shadow = useShadow();
+  const Type = useTypeStyles(colors);
+  const styles = useMemo(() => createStyles(colors, shadow, Type), [colors, shadow, Type]);
   return (
     <Pressable
       onPress={() => {
@@ -174,16 +182,17 @@ function PlanCard({
       </View>
       <Text style={styles.planPrice}>{price}</Text>
       <View style={[styles.radio, selected && styles.radioSelected]}>
-        {selected && <SymbolView name="checkmark" size={12} tintColor="#FFFFFF" weight="bold" />}
+        {selected && <SymbolView name="checkmark" size={12} tintColor={colors.onAccent} weight="bold" />}
       </View>
     </Pressable>
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors, Shadow: ReturnType<typeof useShadow>, Type: ReturnType<typeof useTypeStyles>) =>
+  StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.bg,
+    backgroundColor: colors.bg,
   },
   content: {
     paddingHorizontal: Spacing.screen,
@@ -198,7 +207,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 6,
     alignSelf: 'flex-start',
-    backgroundColor: Colors.greenSoft,
+    backgroundColor: colors.greenSoft,
     paddingVertical: 6,
     paddingHorizontal: 12,
     borderRadius: Radius.full,
@@ -207,7 +216,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '800',
     letterSpacing: 0.8,
-    color: Colors.green,
+    color: colors.green,
   },
   title: {
     ...Type.title,
@@ -231,20 +240,20 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: Radius.md,
-    backgroundColor: Colors.card,
+    backgroundColor: colors.card,
     borderWidth: 1,
-    borderColor: Colors.hairline,
+    borderColor: colors.hairline,
     alignItems: 'center',
     justifyContent: 'center',
   },
   featureTitle: {
     fontSize: 15,
     fontWeight: '700',
-    color: Colors.ink,
+    color: colors.ink,
   },
   featureSubtitle: {
     fontSize: 13,
-    color: Colors.inkSecondary,
+    color: colors.inkSecondary,
     marginTop: 1,
   },
   plans: {
@@ -254,21 +263,21 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.md,
-    backgroundColor: Colors.card,
+    backgroundColor: colors.card,
     borderRadius: Radius.lg,
     padding: Spacing.lg,
     borderWidth: 2,
-    borderColor: Colors.hairline,
+    borderColor: colors.hairline,
     ...Shadow.card,
   },
   planCardSelected: {
-    borderColor: Colors.ink,
+    borderColor: colors.accent,
   },
   planBadge: {
     position: 'absolute',
     top: -10,
     right: Spacing.lg,
-    backgroundColor: Colors.green,
+    backgroundColor: colors.green,
     paddingVertical: 3,
     paddingHorizontal: 10,
     borderRadius: Radius.full,
@@ -282,17 +291,17 @@ const styles = StyleSheet.create({
   planTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: Colors.ink,
+    color: colors.ink,
   },
   planDetail: {
     fontSize: 13,
-    color: Colors.inkSecondary,
+    color: colors.inkSecondary,
     marginTop: 2,
   },
   planPrice: {
     fontSize: 17,
     fontWeight: '800',
-    color: Colors.ink,
+    color: colors.ink,
     fontVariant: ['tabular-nums'],
   },
   radio: {
@@ -300,13 +309,13 @@ const styles = StyleSheet.create({
     height: 24,
     borderRadius: 12,
     borderWidth: 2,
-    borderColor: Colors.hairline,
+    borderColor: colors.hairline,
     alignItems: 'center',
     justifyContent: 'center',
   },
   radioSelected: {
-    backgroundColor: Colors.ink,
-    borderColor: Colors.ink,
+    backgroundColor: colors.accent,
+    borderColor: colors.accent,
   },
   loadingPlans: {
     ...Type.secondary,
@@ -325,11 +334,11 @@ const styles = StyleSheet.create({
   },
   footerNote: {
     fontSize: 13,
-    color: Colors.inkMuted,
+    color: colors.inkMuted,
   },
   restoreLink: {
     fontSize: 13,
     fontWeight: '700',
-    color: Colors.inkSecondary,
+    color: colors.inkSecondary,
   },
 });

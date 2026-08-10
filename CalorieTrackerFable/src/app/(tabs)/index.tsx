@@ -1,7 +1,7 @@
 import { useUser } from '@clerk/expo';
 import { router } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -12,15 +12,20 @@ import { Ring } from '@/components/ring';
 import { Card, SectionLabel } from '@/components/ui';
 import { formatFriendlyDate } from '@/lib/dates';
 import { haptic } from '@/lib/haptics';
-import { MEAL_TYPES, MealTypeMeta } from '@/lib/meal-type';
+import { getMealTypeMeta, MEAL_TYPES } from '@/lib/meal-type';
 import { useApp } from '@/lib/store';
-import { Colors, MacroMeta, Radius, Spacing, Type } from '@/lib/theme';
+import { Radius, Spacing, ThemeColors, useColors, useMacroMeta, useTypeStyles } from '@/lib/theme';
 import type { Meal, MealType } from '@/lib/types';
 
 export default function Today() {
   const insets = useSafeAreaInsets();
   const { user } = useUser();
   const { goals, totals, todayMeals } = useApp();
+  const colors = useColors();
+  const Type = useTypeStyles(colors);
+  const MacroMeta = useMacroMeta(colors);
+  const MealTypeMeta = useMemo(() => getMealTypeMeta(colors), [colors]);
+  const styles = useMemo(() => createStyles(colors, Type), [colors, Type]);
 
   const left = Math.max(0, goals.calories - totals.calories);
   const over = Math.max(0, totals.calories - goals.calories);
@@ -50,7 +55,7 @@ export default function Today() {
           }}
           hitSlop={8}
           style={styles.settingsButton}>
-          <SymbolView name="gearshape.fill" size={19} tintColor={Colors.inkSecondary} />
+          <SymbolView name="gearshape.fill" size={19} tintColor={colors.inkSecondary} />
         </Pressable>
       </View>
 
@@ -95,7 +100,7 @@ export default function Today() {
               }}
               style={({ pressed }) => [styles.emptyCard, pressed && { opacity: 0.85 }]}>
               <View style={styles.emptyIcon}>
-                <SymbolView name="camera.viewfinder" size={26} tintColor={Colors.ink} />
+                <SymbolView name="camera.viewfinder" size={26} tintColor={colors.ink} />
               </View>
               <Text style={styles.emptyTitle}>Nothing logged yet</Text>
               <Text style={styles.emptySubtitle}>Snap a photo of your next meal{'\n'}and we'll do the math.</Text>
@@ -133,10 +138,13 @@ export default function Today() {
 }
 
 function RingStat({ icon, label, value }: { icon: React.ComponentProps<typeof SymbolView>['name']; label: string; value: string }) {
+  const colors = useColors();
+  const Type = useTypeStyles(colors);
+  const styles = useMemo(() => createStyles(colors, Type), [colors, Type]);
   return (
     <View style={styles.ringStat}>
       <View style={styles.ringStatHeader}>
-        <SymbolView name={icon} size={13} tintColor={Colors.inkMuted} />
+        <SymbolView name={icon} size={13} tintColor={colors.inkMuted} />
         <Text style={styles.ringStatLabel}>{label}</Text>
       </View>
       <Text style={styles.ringStatValue}>{value}</Text>
@@ -144,149 +152,150 @@ function RingStat({ icon, label, value }: { icon: React.ComponentProps<typeof Sy
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.bg,
-  },
-  content: {
-    paddingHorizontal: Spacing.screen,
-    paddingBottom: 120,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: Spacing.lg,
-  },
-  date: {
-    ...Type.micro,
-    marginBottom: 2,
-  },
-  greeting: {
-    ...Type.title,
-    fontSize: 26,
-  },
-  settingsButton: {
-    width: 40,
-    height: 40,
-    borderRadius: Radius.full,
-    backgroundColor: Colors.card,
-    borderWidth: 1,
-    borderColor: Colors.hairline,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  progressCard: {
-    gap: Spacing.xl,
-  },
-  ringRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xl,
-  },
-  ringValue: {
-    fontSize: 28,
-    fontWeight: '800',
-    color: Colors.ink,
-    fontVariant: ['tabular-nums'],
-    letterSpacing: -0.8,
-  },
-  ringLabel: {
-    fontSize: 12,
-    color: Colors.inkSecondary,
-    fontWeight: '500',
-  },
-  ringStats: {
-    flex: 1,
-    gap: Spacing.md,
-  },
-  ringStat: {
-    gap: 2,
-  },
-  ringStatHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-  },
-  ringStatDivider: {
-    height: 1,
-    backgroundColor: Colors.hairline,
-  },
-  ringStatLabel: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: Colors.inkMuted,
-  },
-  ringStatValue: {
-    fontSize: 20,
-    fontWeight: '800',
-    color: Colors.ink,
-    fontVariant: ['tabular-nums'],
-    letterSpacing: -0.4,
-  },
-  macros: {
-    flexDirection: 'row',
-    gap: Spacing.lg,
-  },
-  mealsSection: {
-    marginTop: Spacing.xxl,
-  },
-  mealsList: {
-    gap: Spacing.md,
-  },
-  mealGroup: {
-    marginTop: Spacing.xl,
-  },
-  groupHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: Spacing.sm,
-  },
-  groupHeaderLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  groupTitle: {
-    fontSize: 13,
-    fontWeight: '700',
-  },
-  groupKcal: {
-    fontSize: 12.5,
-    fontWeight: '600',
-    color: Colors.inkMuted,
-    fontVariant: ['tabular-nums'],
-  },
-  emptyCard: {
-    backgroundColor: Colors.card,
-    borderRadius: Radius.xl,
-    borderWidth: 1,
-    borderColor: Colors.hairline,
-    borderStyle: 'dashed',
-    alignItems: 'center',
-    paddingVertical: Spacing.xxl + 4,
-    gap: Spacing.sm,
-  },
-  emptyIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: Radius.full,
-    backgroundColor: Colors.bg,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: Spacing.xs,
-  },
-  emptyTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: Colors.ink,
-  },
-  emptySubtitle: {
-    fontSize: 13,
-    color: Colors.inkSecondary,
-    textAlign: 'center',
-    lineHeight: 19,
-  },
-});
+const createStyles = (colors: ThemeColors, Type: ReturnType<typeof useTypeStyles>) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.bg,
+    },
+    content: {
+      paddingHorizontal: Spacing.screen,
+      paddingBottom: 120,
+    },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: Spacing.lg,
+    },
+    date: {
+      ...Type.micro,
+      marginBottom: 2,
+    },
+    greeting: {
+      ...Type.title,
+      fontSize: 26,
+    },
+    settingsButton: {
+      width: 40,
+      height: 40,
+      borderRadius: Radius.full,
+      backgroundColor: colors.card,
+      borderWidth: 1,
+      borderColor: colors.hairline,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    progressCard: {
+      gap: Spacing.xl,
+    },
+    ringRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: Spacing.xl,
+    },
+    ringValue: {
+      fontSize: 28,
+      fontWeight: '800',
+      color: colors.ink,
+      fontVariant: ['tabular-nums'],
+      letterSpacing: -0.8,
+    },
+    ringLabel: {
+      fontSize: 12,
+      color: colors.inkSecondary,
+      fontWeight: '500',
+    },
+    ringStats: {
+      flex: 1,
+      gap: Spacing.md,
+    },
+    ringStat: {
+      gap: 2,
+    },
+    ringStatHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 5,
+    },
+    ringStatDivider: {
+      height: 1,
+      backgroundColor: colors.hairline,
+    },
+    ringStatLabel: {
+      fontSize: 12,
+      fontWeight: '500',
+      color: colors.inkMuted,
+    },
+    ringStatValue: {
+      fontSize: 20,
+      fontWeight: '800',
+      color: colors.ink,
+      fontVariant: ['tabular-nums'],
+      letterSpacing: -0.4,
+    },
+    macros: {
+      flexDirection: 'row',
+      gap: Spacing.lg,
+    },
+    mealsSection: {
+      marginTop: Spacing.xxl,
+    },
+    mealsList: {
+      gap: Spacing.md,
+    },
+    mealGroup: {
+      marginTop: Spacing.xl,
+    },
+    groupHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: Spacing.sm,
+    },
+    groupHeaderLeft: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+    },
+    groupTitle: {
+      fontSize: 13,
+      fontWeight: '700',
+    },
+    groupKcal: {
+      fontSize: 12.5,
+      fontWeight: '600',
+      color: colors.inkMuted,
+      fontVariant: ['tabular-nums'],
+    },
+    emptyCard: {
+      backgroundColor: colors.card,
+      borderRadius: Radius.xl,
+      borderWidth: 1,
+      borderColor: colors.hairline,
+      borderStyle: 'dashed',
+      alignItems: 'center',
+      paddingVertical: Spacing.xxl + 4,
+      gap: Spacing.sm,
+    },
+    emptyIcon: {
+      width: 56,
+      height: 56,
+      borderRadius: Radius.full,
+      backgroundColor: colors.bg,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: Spacing.xs,
+    },
+    emptyTitle: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: colors.ink,
+    },
+    emptySubtitle: {
+      fontSize: 13,
+      color: colors.inkSecondary,
+      textAlign: 'center',
+      lineHeight: 19,
+    },
+  });

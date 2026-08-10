@@ -1,5 +1,5 @@
 import { Image } from 'expo-image';
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import Animated, {
   Easing,
@@ -12,7 +12,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import type { ViewProps } from 'react-native';
 
-import { Colors, Type } from '@/lib/theme';
+import { ThemeColors, useColors, useTypeStyles } from '@/lib/theme';
 
 /**
  * Custom in-JS loading screen shown briefly on cold start, after the native
@@ -28,6 +28,9 @@ export function BootSplash({
   exiting?: AnimatedProps<ViewProps>['exiting'];
 }) {
   const pulse = useSharedValue(0.4);
+  const colors = useColors();
+  const Type = useTypeStyles(colors);
+  const styles = useMemo(() => createStyles(colors, Type), [colors, Type]);
 
   useEffect(() => {
     pulse.value = withRepeat(
@@ -55,36 +58,37 @@ export function BootSplash({
   );
 }
 
-const styles = StyleSheet.create({
-  wrap: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: '#FAF8F4',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 14,
-  },
-  mark: {
-    width: 96,
-    height: 96,
-  },
-  title: {
-    ...Type.title,
-    fontSize: 22,
-    color: Colors.ink,
-  },
-  dotsRow: {
-    flexDirection: 'row',
-    gap: 6,
-    marginTop: 4,
-  },
-  dot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: Colors.ink,
-  },
-});
+const createStyles = (colors: ThemeColors, Type: ReturnType<typeof useTypeStyles>) =>
+  StyleSheet.create({
+    wrap: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: colors.bg,
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 14,
+    },
+    mark: {
+      width: 96,
+      height: 96,
+    },
+    title: {
+      ...Type.title,
+      fontSize: 22,
+      color: colors.ink,
+    },
+    dotsRow: {
+      flexDirection: 'row',
+      gap: 6,
+      marginTop: 4,
+    },
+    dot: {
+      width: 6,
+      height: 6,
+      borderRadius: 3,
+      backgroundColor: colors.ink,
+    },
+  });

@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { getHealthSignal, HealthLevelMeta } from '@/lib/health-signal';
+import { getHealthLevelMeta, getHealthSignal } from '@/lib/health-signal';
+import { useColors } from '@/lib/theme';
 import type { MacroSet } from '@/lib/types';
 
 /**
@@ -11,6 +12,8 @@ import type { MacroSet } from '@/lib/types';
  * useful, so it never shows a misleading default.
  */
 export function HealthBadge({ macros, size = 'sm' }: { macros: MacroSet; size?: 'sm' | 'md' }) {
+  const colors = useColors();
+  const HealthLevelMeta = useMemo(() => getHealthLevelMeta(colors), [colors]);
   const signal = getHealthSignal(macros);
   if (!signal) return null;
   const meta = HealthLevelMeta[signal.level];

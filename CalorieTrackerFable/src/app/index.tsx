@@ -5,7 +5,7 @@ import { ActivityIndicator, View } from 'react-native';
 
 import { usePurchases } from '@/lib/purchases';
 import { useApp } from '@/lib/store';
-import { Colors } from '@/lib/theme';
+import { useColors } from '@/lib/theme';
 
 /**
  * Entry gate. Routes to the right surface based on auth, onboarding and
@@ -18,11 +18,12 @@ export default function Index() {
   const { isLoaded, isSignedIn } = useAuth();
   const { isReady, isPro } = usePurchases();
   const { isOnboarded } = useApp();
+  const colors = useColors();
 
   if (!isLoaded || !isReady) {
     return (
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.bg }}>
-        <ActivityIndicator color={Colors.ink} />
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg }}>
+        <ActivityIndicator color={colors.ink} />
       </View>
     );
   }

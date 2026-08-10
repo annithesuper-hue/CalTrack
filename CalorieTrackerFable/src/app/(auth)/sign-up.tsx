@@ -1,17 +1,19 @@
 import { useSignUp } from '@clerk/expo';
 import { router } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { AuthInput, AuthScreen, ErrorText } from '@/components/auth-ui';
 import { Button } from '@/components/ui';
 import { haptic } from '@/lib/haptics';
 import { useApp } from '@/lib/store';
-import { Colors, Spacing } from '@/lib/theme';
+import { Spacing, ThemeColors, useColors } from '@/lib/theme';
 
 export default function SignUp() {
   const { signUp, errors, fetchStatus } = useSignUp();
   const { completeOnboarding } = useApp();
+  const colors = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [emailAddress, setEmailAddress] = useState('');
   const [password, setPassword] = useState('');
   const [code, setCode] = useState('');
@@ -124,20 +126,21 @@ export default function SignUp() {
   );
 }
 
-const styles = StyleSheet.create({
-  footerRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 6,
-    marginTop: Spacing.sm,
-  },
-  footerText: {
-    fontSize: 14,
-    color: Colors.inkSecondary,
-  },
-  footerLink: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: Colors.ink,
-  },
-});
+const createStyles = (colors: ThemeColors) =>
+  StyleSheet.create({
+    footerRow: {
+      flexDirection: 'row',
+      justifyContent: 'center',
+      gap: 6,
+      marginTop: Spacing.sm,
+    },
+    footerText: {
+      fontSize: 14,
+      color: colors.inkSecondary,
+    },
+    footerLink: {
+      fontSize: 14,
+      fontWeight: '700',
+      color: colors.ink,
+    },
+  });

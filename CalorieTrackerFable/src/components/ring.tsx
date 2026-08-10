@@ -6,7 +6,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import Svg, { Circle } from 'react-native-svg';
 
-import { Colors } from '@/lib/theme';
+import { useColors } from '@/lib/theme';
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
@@ -21,7 +21,10 @@ type RingProps = {
 };
 
 /** Animated circular progress ring with content slot in the middle. */
-export function Ring({ size, strokeWidth, progress, color = Colors.ring, trackColor = Colors.ringTrack, children }: RingProps) {
+export function Ring({ size, strokeWidth, progress, color, trackColor, children }: RingProps) {
+  const colors = useColors();
+  const ringColor = color ?? colors.ring;
+  const ringTrackColor = trackColor ?? colors.ringTrack;
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
   const animated = useSharedValue(0);
@@ -44,7 +47,7 @@ export function Ring({ size, strokeWidth, progress, color = Colors.ring, trackCo
           cx={size / 2}
           cy={size / 2}
           r={radius}
-          stroke={trackColor}
+          stroke={ringTrackColor}
           strokeWidth={strokeWidth}
           fill="none"
         />
@@ -52,7 +55,7 @@ export function Ring({ size, strokeWidth, progress, color = Colors.ring, trackCo
           cx={size / 2}
           cy={size / 2}
           r={radius}
-          stroke={color}
+          stroke={ringColor}
           strokeWidth={strokeWidth}
           strokeLinecap="round"
           strokeDasharray={circumference}

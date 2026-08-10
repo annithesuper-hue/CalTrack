@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -24,9 +24,9 @@ import { Button } from '@/components/ui';
 import { friendlyErrorMessage } from '@/lib/api-client';
 import { foodResultToAnalysis, searchAllFoods, type FoodResult } from '@/lib/food-search';
 import { haptic } from '@/lib/haptics';
-import { inferMealTypeFromHour, MealTypeMeta } from '@/lib/meal-type';
+import { getMealTypeMeta, inferMealTypeFromHour } from '@/lib/meal-type';
 import { useApp } from '@/lib/store';
-import { Colors, MacroMeta, Radius, Shadow, Spacing, Type } from '@/lib/theme';
+import { Radius, Spacing, ThemeColors, useColors, useMacroMeta, useShadow, useTypeStyles } from '@/lib/theme';
 import type { AnalysisResult, Meal, MealType } from '@/lib/types';
 
 type Phase = 'idle' | 'searching' | 'results' | 'empty' | 'error' | 'review';
@@ -36,6 +36,12 @@ const DEBOUNCE_MS = 450;
 export default function SearchFood() {
   const insets = useSafeAreaInsets();
   const { logMeal, getRecentMeals } = useApp();
+  const colors = useColors();
+  const shadow = useShadow();
+  const Type = useTypeStyles(colors);
+  const MacroMeta = useMacroMeta(colors);
+  const MealTypeMeta = useMemo(() => getMealTypeMeta(colors), [colors]);
+  const styles = useMemo(() => createStyles(colors, shadow, Type), [colors, shadow, Type]);
 
   const [query, setQuery] = useState('');
   const [phase, setPhase] = useState<Phase>('idle');
@@ -144,11 +150,11 @@ export default function SearchFood() {
       <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <View style={[styles.header, { paddingTop: insets.top + Spacing.sm }]}>
           <Pressable onPress={backToResults} hitSlop={10} style={styles.headerButton}>
-            <SymbolView name="chevron.left" size={16} tintColor={Colors.ink} weight="semibold" />
+            <SymbolView name="chevron.left" size={16} tintColor={colors.ink} weight="semibold" />
           </Pressable>
           <Text style={styles.headerTitle}>Review</Text>
           <Pressable onPress={close} hitSlop={10} style={styles.headerButton}>
-            <SymbolView name="xmark" size={15} tintColor={Colors.ink} weight="semibold" />
+            <SymbolView name="xmark" size={15} tintColor={colors.ink} weight="semibold" />
           </Pressable>
         </View>
 
@@ -190,7 +196,7 @@ export default function SearchFood() {
               value={result.calories}
               unit="kcal"
               step={10}
-              color={Colors.ink}
+              color={colors.ink}
               onChange={(calories) => setResult({ ...result, calories })}
             />
             <NutrientField
@@ -238,17 +244,17 @@ export default function SearchFood() {
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Search Food</Text>
         <Pressable onPress={close} hitSlop={10} style={styles.headerButton}>
-          <SymbolView name="xmark" size={15} tintColor={Colors.ink} weight="semibold" />
+          <SymbolView name="xmark" size={15} tintColor={colors.ink} weight="semibold" />
         </Pressable>
       </View>
 
       <View style={styles.searchBar}>
-        <SymbolView name="magnifyingglass" size={16} tintColor={Colors.inkMuted} />
+        <SymbolView name="magnifyingglass" size={16} tintColor={colors.inkMuted} />
         <TextInput
           value={query}
           onChangeText={onChangeQuery}
           placeholder="Search foods, e.g. soya chunks"
-          placeholderTextColor={Colors.inkMuted}
+          placeholderTextColor={colors.inkMuted}
           style={styles.searchInput}
           autoFocus
           autoCorrect={false}
@@ -257,7 +263,7 @@ export default function SearchFood() {
         />
         {query.length > 0 && (
           <Pressable onPress={() => onChangeQuery('')} hitSlop={10}>
-            <SymbolView name="xmark.circle.fill" size={16} tintColor={Colors.inkMuted} />
+            <SymbolView name="xmark.circle.fill" size={16} tintColor={colors.inkMuted} />
           </Pressable>
         )}
       </View>
@@ -273,7 +279,7 @@ export default function SearchFood() {
                   <Animated.View key={meal.id} entering={FadeIn.duration(220).delay(Math.min(index, 8) * 25)}>
                     <Pressable
                       onPress={() => selectRecentMeal(meal)}
-                      style={({ pressed }) => [styles.resultRow, pressed && { backgroundColor: Colors.cardPressed }]}>
+                      style={({ pressed }) => [styles.resultRow, pressed && { backgroundColor: colors.cardPressed }]}>
                       <View style={[styles.resultTag, { backgroundColor: `${meta.color}22` }]}>
                         <Text style={styles.resultTagText}>{meal.emoji}</Text>
                       </View>
@@ -285,7 +291,7 @@ export default function SearchFood() {
                           {meta.label} · {Math.round(meal.calories)} kcal
                         </Text>
                       </View>
-                      <SymbolView name="arrow.clockwise" size={14} tintColor={Colors.inkMuted} />
+                      <SymbolView name="arrow.clockwise" size={14} tintColor={colors.inkMuted} />
                     </Pressable>
                   </Animated.View>
                 );
@@ -294,7 +300,7 @@ export default function SearchFood() {
           </ScrollView>
         ) : (
           <View style={styles.centerWrap}>
-            <SymbolView name="magnifyingglass" size={34} tintColor={Colors.inkMuted} />
+            <SymbolView name="magnifyingglass" size={34} tintColor={colors.inkMuted} />
             <Text style={styles.centerTitle}>Search your food library</Text>
             <Text style={styles.centerText}>Find Indian & global packaged and whole foods by name and log them in seconds.</Text>
           </View>
@@ -303,14 +309,14 @@ export default function SearchFood() {
 
       {phase === 'searching' && (
         <View style={styles.centerWrap}>
-          <ActivityIndicator color={Colors.ink} />
+          <ActivityIndicator color={colors.ink} />
           <Text style={styles.centerText}>Searching…</Text>
         </View>
       )}
 
       {phase === 'empty' && (
         <View style={styles.centerWrap}>
-          <SymbolView name="questionmark.circle.fill" size={34} tintColor={Colors.inkMuted} />
+          <SymbolView name="questionmark.circle.fill" size={34} tintColor={colors.inkMuted} />
           <Text style={styles.centerTitle}>No results</Text>
           <Text style={styles.centerText}>Try a different search term, or add this food manually.</Text>
           <Button
@@ -324,7 +330,7 @@ export default function SearchFood() {
 
       {phase === 'error' && (
         <View style={styles.centerWrap}>
-          <SymbolView name="exclamationmark.triangle.fill" size={34} tintColor={Colors.carbs} />
+          <SymbolView name="exclamationmark.triangle.fill" size={34} tintColor={colors.carbs} />
           <Text style={styles.centerTitle}>Hmm, that didn't work</Text>
           <Text style={styles.centerText}>{errorMessage}</Text>
           <Button
@@ -348,7 +354,7 @@ export default function SearchFood() {
               <Animated.View entering={FadeIn.duration(220).delay(Math.min(index, 8) * 25)}>
                 <Pressable
                   onPress={() => selectFood(item)}
-                  style={({ pressed }) => [styles.resultRow, pressed && { backgroundColor: Colors.cardPressed }]}>
+                  style={({ pressed }) => [styles.resultRow, pressed && { backgroundColor: colors.cardPressed }]}>
                   <View style={[styles.resultTag, item.isGeneric ? styles.resultTagGeneric : styles.resultTagBranded]}>
                     <Text style={styles.resultTagText}>{item.isGeneric ? '🥗' : '📦'}</Text>
                   </View>
@@ -361,7 +367,7 @@ export default function SearchFood() {
                       {item.servingDescription ?? `${Math.round(item.defaultQuantity)}${item.unit}`} · {kcalAtDefault} kcal
                     </Text>
                   </View>
-                  <SymbolView name="chevron.right" size={14} tintColor={Colors.inkMuted} />
+                  <SymbolView name="chevron.right" size={14} tintColor={colors.inkMuted} />
                 </Pressable>
               </Animated.View>
             );
@@ -372,10 +378,11 @@ export default function SearchFood() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors, Shadow: ReturnType<typeof useShadow>, Type: ReturnType<typeof useTypeStyles>) =>
+  StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.bg,
+    backgroundColor: colors.bg,
     paddingHorizontal: Spacing.screen,
   },
   header: {
@@ -392,9 +399,9 @@ const styles = StyleSheet.create({
     width: 34,
     height: 34,
     borderRadius: Radius.full,
-    backgroundColor: Colors.card,
+    backgroundColor: colors.card,
     borderWidth: 1,
-    borderColor: Colors.hairline,
+    borderColor: colors.hairline,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -402,10 +409,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
-    backgroundColor: Colors.card,
+    backgroundColor: colors.card,
     borderRadius: Radius.lg,
     borderWidth: 1,
-    borderColor: Colors.hairline,
+    borderColor: colors.hairline,
     paddingHorizontal: Spacing.md,
     paddingVertical: Platform.OS === 'ios' ? 12 : 8,
     marginBottom: Spacing.md,
@@ -413,7 +420,7 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     fontSize: 15,
-    color: Colors.ink,
+    color: colors.ink,
   },
   centerWrap: {
     flex: 1,
@@ -426,12 +433,12 @@ const styles = StyleSheet.create({
   centerTitle: {
     fontSize: 17,
     fontWeight: '700',
-    color: Colors.ink,
+    color: colors.ink,
     marginTop: Spacing.xs,
   },
   centerText: {
     fontSize: 13.5,
-    color: Colors.inkSecondary,
+    color: colors.inkSecondary,
     textAlign: 'center',
     lineHeight: 19,
   },
@@ -442,10 +449,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.md,
-    backgroundColor: Colors.card,
+    backgroundColor: colors.card,
     borderRadius: Radius.lg,
     borderWidth: 1,
-    borderColor: Colors.hairline,
+    borderColor: colors.hairline,
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.md,
     marginBottom: Spacing.sm,
@@ -458,10 +465,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   resultTagGeneric: {
-    backgroundColor: Colors.greenSoft,
+    backgroundColor: colors.greenSoft,
   },
   resultTagBranded: {
-    backgroundColor: Colors.fatSoft,
+    backgroundColor: colors.fatSoft,
   },
   resultTagText: {
     fontSize: 15,
@@ -469,11 +476,11 @@ const styles = StyleSheet.create({
   resultName: {
     fontSize: 15,
     fontWeight: '700',
-    color: Colors.ink,
+    color: colors.ink,
   },
   resultMeta: {
     fontSize: 12.5,
-    color: Colors.green,
+    color: colors.green,
     marginTop: 2,
     fontWeight: '600',
   },
@@ -481,7 +488,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 0,
   },
   resultCard: {
-    backgroundColor: Colors.card,
+    backgroundColor: colors.card,
     borderRadius: Radius.xl,
     padding: Spacing.xl,
     marginTop: Spacing.sm,
@@ -500,7 +507,7 @@ const styles = StyleSheet.create({
   },
   foodBrand: {
     fontSize: 13,
-    color: Colors.inkSecondary,
+    color: colors.inkSecondary,
     marginTop: 2,
   },
   badgeRow: {
@@ -515,7 +522,7 @@ const styles = StyleSheet.create({
   sectionLabel: {
     fontSize: 12,
     fontWeight: '700',
-    color: Colors.inkMuted,
+    color: colors.inkMuted,
     textTransform: 'uppercase',
     letterSpacing: 0.4,
     marginBottom: Spacing.sm,
@@ -530,7 +537,7 @@ const styles = StyleSheet.create({
   servingsLabel: {
     fontSize: 13,
     fontWeight: '600',
-    color: Colors.inkSecondary,
+    color: colors.inkSecondary,
     flex: 1,
     marginRight: Spacing.sm,
   },
@@ -542,7 +549,7 @@ const styles = StyleSheet.create({
   servingsValue: {
     fontSize: 17,
     fontWeight: '700',
-    color: Colors.ink,
+    color: colors.ink,
     fontVariant: ['tabular-nums'],
     minWidth: 34,
     textAlign: 'center',
@@ -551,26 +558,26 @@ const styles = StyleSheet.create({
     width: 34,
     height: 34,
     borderRadius: Radius.full,
-    backgroundColor: Colors.bg,
+    backgroundColor: colors.bg,
     borderWidth: 1,
-    borderColor: Colors.hairline,
+    borderColor: colors.hairline,
     alignItems: 'center',
     justifyContent: 'center',
   },
   fieldsDivider: {
     height: StyleSheet.hairlineWidth,
-    backgroundColor: Colors.hairline,
+    backgroundColor: colors.hairline,
     marginVertical: Spacing.md,
   },
   editHint: {
     fontSize: 12,
-    color: Colors.inkMuted,
+    color: colors.inkMuted,
     marginTop: Spacing.sm,
   },
   resultFooter: {
     flexDirection: 'row',
     gap: Spacing.md,
     paddingTop: Spacing.md,
-    backgroundColor: Colors.bg,
+    backgroundColor: colors.bg,
   },
 });

@@ -10,11 +10,15 @@ import { haptic } from '@/lib/haptics';
 import { computePlan } from '@/lib/nutrition';
 import { draftProfile } from '@/lib/onboarding-draft';
 import { useApp } from '@/lib/store';
-import { Colors, MacroMeta, Radius, Spacing, Type } from '@/lib/theme';
+import { Radius, Spacing, ThemeColors, useColors, useMacroMeta, useTypeStyles } from '@/lib/theme';
 
 export default function Plan() {
   const insets = useSafeAreaInsets();
   const { saveProfile, saveGoals } = useApp();
+  const colors = useColors();
+  const Type = useTypeStyles(colors);
+  const MacroMeta = useMacroMeta(colors);
+  const styles = useMemo(() => createStyles(colors, Type), [colors, Type]);
   const [revealed, setRevealed] = useState(false);
   const profile = useMemo(() => draftProfile(), []);
   const plan = useMemo(() => computePlan(profile), [profile]);
@@ -32,7 +36,7 @@ export default function Plan() {
   if (!revealed) {
     return (
       <View style={styles.loadingWrap}>
-        <ActivityIndicator color={Colors.ink} />
+        <ActivityIndicator color={colors.ink} />
         <Animated.Text entering={FadeIn} style={styles.loadingText}>
           Building your personal plan…
         </Animated.Text>
@@ -82,80 +86,81 @@ export default function Plan() {
   );
 }
 
-const styles = StyleSheet.create({
-  loadingWrap: {
-    flex: 1,
-    backgroundColor: Colors.bg,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: Spacing.lg,
-  },
-  loadingText: {
-    ...Type.secondary,
-    fontWeight: '500',
-  },
-  container: {
-    flex: 1,
-    backgroundColor: Colors.bg,
-    paddingHorizontal: Spacing.screen,
-  },
-  content: {
-    flex: 1,
-    paddingTop: Spacing.xl,
-  },
-  textBlock: {
-    gap: Spacing.sm,
-    marginBottom: Spacing.xl,
-  },
-  subtitle: {
-    ...Type.secondary,
-    lineHeight: 22,
-  },
-  calorieCard: {
-    alignItems: 'center',
-    paddingVertical: Spacing.xxl,
-  },
-  calorieValue: {
-    fontSize: 32,
-    fontWeight: '800',
-    color: Colors.ink,
-    fontVariant: ['tabular-nums'],
-    letterSpacing: -1,
-  },
-  calorieUnit: {
-    fontSize: 13,
-    color: Colors.inkSecondary,
-    fontWeight: '500',
-  },
-  macroRow: {
-    flexDirection: 'row',
-    gap: Spacing.md,
-    marginTop: Spacing.md,
-  },
-  macroCard: {
-    flex: 1,
-    alignItems: 'center',
-    gap: 4,
-    paddingVertical: Spacing.lg,
-    paddingHorizontal: Spacing.sm,
-    borderRadius: Radius.lg,
-  },
-  macroChip: {
-    width: 12,
-    height: 12,
-    borderRadius: 4,
-    marginBottom: 2,
-  },
-  macroValue: {
-    fontSize: 20,
-    fontWeight: '800',
-    color: Colors.ink,
-    fontVariant: ['tabular-nums'],
-    letterSpacing: -0.4,
-  },
-  macroLabel: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: Colors.inkSecondary,
-  },
-});
+const createStyles = (colors: ThemeColors, Type: ReturnType<typeof useTypeStyles>) =>
+  StyleSheet.create({
+    loadingWrap: {
+      flex: 1,
+      backgroundColor: colors.bg,
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: Spacing.lg,
+    },
+    loadingText: {
+      ...Type.secondary,
+      fontWeight: '500',
+    },
+    container: {
+      flex: 1,
+      backgroundColor: colors.bg,
+      paddingHorizontal: Spacing.screen,
+    },
+    content: {
+      flex: 1,
+      paddingTop: Spacing.xl,
+    },
+    textBlock: {
+      gap: Spacing.sm,
+      marginBottom: Spacing.xl,
+    },
+    subtitle: {
+      ...Type.secondary,
+      lineHeight: 22,
+    },
+    calorieCard: {
+      alignItems: 'center',
+      paddingVertical: Spacing.xxl,
+    },
+    calorieValue: {
+      fontSize: 32,
+      fontWeight: '800',
+      color: colors.ink,
+      fontVariant: ['tabular-nums'],
+      letterSpacing: -1,
+    },
+    calorieUnit: {
+      fontSize: 13,
+      color: colors.inkSecondary,
+      fontWeight: '500',
+    },
+    macroRow: {
+      flexDirection: 'row',
+      gap: Spacing.md,
+      marginTop: Spacing.md,
+    },
+    macroCard: {
+      flex: 1,
+      alignItems: 'center',
+      gap: 4,
+      paddingVertical: Spacing.lg,
+      paddingHorizontal: Spacing.sm,
+      borderRadius: Radius.lg,
+    },
+    macroChip: {
+      width: 12,
+      height: 12,
+      borderRadius: 4,
+      marginBottom: 2,
+    },
+    macroValue: {
+      fontSize: 20,
+      fontWeight: '800',
+      color: colors.ink,
+      fontVariant: ['tabular-nums'],
+      letterSpacing: -0.4,
+    },
+    macroLabel: {
+      fontSize: 12,
+      fontWeight: '500',
+      color: colors.inkSecondary,
+    },
+  });

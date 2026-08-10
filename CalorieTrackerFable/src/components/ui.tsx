@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 
 import { haptic } from '@/lib/haptics';
-import { Colors, Radius, Shadow, Spacing, Type } from '@/lib/theme';
+import { Radius, Spacing, ThemeColors, useColors, useShadow, useTypeStyles } from '@/lib/theme';
 
 type ButtonProps = {
   title: string;
@@ -23,11 +23,14 @@ type ButtonProps = {
 };
 
 export function Button({ title, onPress, disabled, loading, variant = 'primary', style }: ButtonProps) {
+  const colors = useColors();
+  const shadow = useShadow();
+  const styles = useMemo(() => createStyles(colors, shadow), [colors, shadow]);
   const isPrimary = variant === 'primary';
   const textStyle: TextStyle[] = [styles.buttonText];
-  if (variant === 'secondary') textStyle.push({ color: Colors.ink });
-  if (variant === 'ghost') textStyle.push({ color: Colors.inkSecondary, fontSize: 15 });
-  if (variant === 'danger') textStyle.push({ color: Colors.danger });
+  if (variant === 'secondary') textStyle.push({ color: colors.ink });
+  if (variant === 'ghost') textStyle.push({ color: colors.inkSecondary, fontSize: 15 });
+  if (variant === 'danger') textStyle.push({ color: colors.danger });
 
   return (
     <Pressable
@@ -47,7 +50,7 @@ export function Button({ title, onPress, disabled, loading, variant = 'primary',
         style,
       ]}>
       {loading ? (
-        <ActivityIndicator color={isPrimary ? '#FFFFFF' : Colors.ink} />
+        <ActivityIndicator color={isPrimary ? colors.onAccent : colors.ink} />
       ) : (
         <Text style={textStyle}>{title}</Text>
       )}
@@ -56,60 +59,71 @@ export function Button({ title, onPress, disabled, loading, variant = 'primary',
 }
 
 export function Card({ children, style }: { children: React.ReactNode; style?: StyleProp<ViewStyle> }) {
+  const colors = useColors();
+  const shadow = useShadow();
+  const styles = useMemo(() => createStyles(colors, shadow), [colors, shadow]);
   return <View style={[styles.card, style]}>{children}</View>;
 }
 
 export function SectionLabel({ children }: { children: React.ReactNode }) {
+  const colors = useColors();
+  const shadow = useShadow();
+  const Type = useTypeStyles(colors);
+  const styles = useMemo(() => createStyles(colors, shadow), [colors, shadow]);
   return <Text style={[Type.micro, styles.sectionLabel]}>{children}</Text>;
 }
 
 export function Divider() {
+  const colors = useColors();
+  const shadow = useShadow();
+  const styles = useMemo(() => createStyles(colors, shadow), [colors, shadow]);
   return <View style={styles.divider} />;
 }
 
-const styles = StyleSheet.create({
-  button: {
-    height: 56,
-    borderRadius: Radius.lg,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: Spacing.xl,
-  },
-  buttonPrimary: {
-    backgroundColor: Colors.accent,
-    ...Shadow.float,
-  },
-  buttonSecondary: {
-    backgroundColor: Colors.card,
-    borderWidth: 1,
-    borderColor: Colors.hairline,
-  },
-  buttonGhost: {
-    height: 44,
-  },
-  buttonDangerOutline: {
-    backgroundColor: 'transparent',
-    height: 48,
-  },
-  buttonText: {
-    fontSize: 17,
-    fontWeight: '700',
-    color: '#FFFFFF',
-    letterSpacing: -0.2,
-  },
-  card: {
-    backgroundColor: Colors.card,
-    borderRadius: Radius.xl,
-    padding: Spacing.xl,
-    ...Shadow.card,
-  },
-  sectionLabel: {
-    marginBottom: Spacing.md,
-    marginLeft: Spacing.xs,
-  },
-  divider: {
-    height: StyleSheet.hairlineWidth,
-    backgroundColor: Colors.hairline,
-    marginVertical: Spacing.md,
-  },
-});
+const createStyles = (colors: ThemeColors, Shadow: ReturnType<typeof useShadow>) =>
+  StyleSheet.create({
+    button: {
+      height: 56,
+      borderRadius: Radius.lg,
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingHorizontal: Spacing.xl,
+    },
+    buttonPrimary: {
+      backgroundColor: colors.accent,
+      ...Shadow.float,
+    },
+    buttonSecondary: {
+      backgroundColor: colors.card,
+      borderWidth: 1,
+      borderColor: colors.hairline,
+    },
+    buttonGhost: {
+      height: 44,
+    },
+    buttonDangerOutline: {
+      backgroundColor: 'transparent',
+      height: 48,
+    },
+    buttonText: {
+      fontSize: 17,
+      fontWeight: '700',
+      color: colors.onAccent,
+      letterSpacing: -0.2,
+    },
+    card: {
+      backgroundColor: colors.card,
+      borderRadius: Radius.xl,
+      padding: Spacing.xl,
+      ...Shadow.card,
+    },
+    sectionLabel: {
+      marginBottom: Spacing.md,
+      marginLeft: Spacing.xs,
+    },
+    divider: {
+      height: StyleSheet.hairlineWidth,
+      backgroundColor: colors.hairline,
+      marginVertical: Spacing.md,
+    },
+  });

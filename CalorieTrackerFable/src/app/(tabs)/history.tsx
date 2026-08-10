@@ -7,7 +7,7 @@ import { CalorieBarChart, MacroStackChart, StatTile } from '@/components/charts'
 import { Card, SectionLabel } from '@/components/ui';
 import { haptic } from '@/lib/haptics';
 import { useApp } from '@/lib/store';
-import { Colors, Radius, Spacing, Type } from '@/lib/theme';
+import { Radius, Spacing, ThemeColors, useColors, useTypeStyles } from '@/lib/theme';
 
 const RANGES = [
   { label: '7 days', days: 7 },
@@ -17,6 +17,9 @@ const RANGES = [
 export default function History() {
   const insets = useSafeAreaInsets();
   const { goals, getHistory } = useApp();
+  const colors = useColors();
+  const Type = useTypeStyles(colors);
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [range, setRange] = useState<7 | 14>(7);
 
   const data = useMemo(() => getHistory(range), [getHistory, range]);
@@ -75,46 +78,47 @@ export default function History() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.bg,
-  },
-  content: {
-    paddingHorizontal: Spacing.screen,
-    paddingBottom: 120,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: Spacing.lg,
-  },
-  segment: {
-    flexDirection: 'row',
-    backgroundColor: Colors.ringTrack,
-    borderRadius: Radius.full,
-    padding: 3,
-  },
-  segmentItem: {
-    paddingVertical: 7,
-    paddingHorizontal: 14,
-    borderRadius: Radius.full,
-  },
-  segmentItemActive: {
-    backgroundColor: Colors.card,
-  },
-  segmentText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: Colors.inkSecondary,
-  },
-  segmentTextActive: {
-    color: Colors.ink,
-  },
-  statsRow: {
-    flexDirection: 'row',
-    gap: Spacing.md,
-    marginBottom: Spacing.xl,
-  },
-});
+const createStyles = (colors: ThemeColors) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.bg,
+    },
+    content: {
+      paddingHorizontal: Spacing.screen,
+      paddingBottom: 120,
+    },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: Spacing.lg,
+    },
+    segment: {
+      flexDirection: 'row',
+      backgroundColor: colors.ringTrack,
+      borderRadius: Radius.full,
+      padding: 3,
+    },
+    segmentItem: {
+      paddingVertical: 7,
+      paddingHorizontal: 14,
+      borderRadius: Radius.full,
+    },
+    segmentItemActive: {
+      backgroundColor: colors.card,
+    },
+    segmentText: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: colors.inkSecondary,
+    },
+    segmentTextActive: {
+      color: colors.ink,
+    },
+    statsRow: {
+      flexDirection: 'row',
+      gap: Spacing.md,
+      marginBottom: Spacing.xl,
+    },
+  });

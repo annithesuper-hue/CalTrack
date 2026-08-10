@@ -23,7 +23,7 @@ import { getMeal } from '@/lib/db';
 import { formatFriendlyDate, formatTime } from '@/lib/dates';
 import { haptic } from '@/lib/haptics';
 import { useApp } from '@/lib/store';
-import { Colors, MacroMeta, Radius, Shadow, Spacing, Type } from '@/lib/theme';
+import { Radius, Spacing, ThemeColors, useColors, useMacroMeta, useShadow, useTypeStyles } from '@/lib/theme';
 
 export default function MealDetail() {
   const insets = useSafeAreaInsets();
@@ -31,6 +31,11 @@ export default function MealDetail() {
   const { editMeal, removeMeal } = useApp();
   const original = useMemo(() => getMeal(id), [id]);
   const [meal, setMeal] = useState(original);
+  const colors = useColors();
+  const shadow = useShadow();
+  const Type = useTypeStyles(colors);
+  const MacroMeta = useMacroMeta(colors);
+  const styles = useMemo(() => createStyles(colors, shadow, Type), [colors, shadow, Type]);
 
   if (!meal || !original) {
     return (
@@ -92,7 +97,7 @@ export default function MealDetail() {
               value={meal.name}
               onChangeText={(name) => setMeal({ ...meal, name })}
             />
-            <SymbolView name="pencil" size={16} tintColor={Colors.inkMuted} />
+            <SymbolView name="pencil" size={16} tintColor={colors.inkMuted} />
           </View>
           <Text style={styles.timestamp}>
             {formatFriendlyDate(new Date(meal.createdAt))} · {formatTime(meal.createdAt)}
@@ -112,7 +117,7 @@ export default function MealDetail() {
             value={meal.calories}
             unit="kcal"
             step={10}
-            color={Colors.ink}
+            color={colors.ink}
             onChange={(calories) => setMeal({ ...meal, calories })}
           />
           <NutrientField
@@ -142,7 +147,7 @@ export default function MealDetail() {
         </View>
 
         <Pressable onPress={confirmDelete} style={styles.deleteRow}>
-          <SymbolView name="trash" size={16} tintColor={Colors.danger} />
+          <SymbolView name="trash" size={16} tintColor={colors.danger} />
           <Text style={styles.deleteText}>Delete meal</Text>
         </Pressable>
       </ScrollView>
@@ -154,16 +159,17 @@ export default function MealDetail() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors, Shadow: ReturnType<typeof useShadow>, Type: ReturnType<typeof useTypeStyles>) =>
+  StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.bg,
+    backgroundColor: colors.bg,
   },
   missingWrap: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: Colors.bg,
+    backgroundColor: colors.bg,
   },
   content: {
     paddingHorizontal: Spacing.screen,
@@ -173,7 +179,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 5,
     borderRadius: 3,
-    backgroundColor: Colors.ringTrack,
+    backgroundColor: colors.ringTrack,
     marginTop: Spacing.sm,
     marginBottom: Spacing.md,
   },
@@ -186,13 +192,13 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 160,
     borderRadius: Radius.xl,
-    backgroundColor: Colors.card,
+    backgroundColor: colors.card,
     alignItems: 'center',
     justifyContent: 'center',
     ...Shadow.card,
   },
   card: {
-    backgroundColor: Colors.card,
+    backgroundColor: colors.card,
     borderRadius: Radius.xl,
     padding: Spacing.xl,
     marginTop: Spacing.lg,
@@ -213,7 +219,7 @@ const styles = StyleSheet.create({
   },
   timestamp: {
     fontSize: 13,
-    color: Colors.inkMuted,
+    color: colors.inkMuted,
     marginTop: 6,
   },
   badgeRow: {
@@ -224,7 +230,7 @@ const styles = StyleSheet.create({
   },
   divider: {
     height: StyleSheet.hairlineWidth,
-    backgroundColor: Colors.hairline,
+    backgroundColor: colors.hairline,
     marginVertical: Spacing.md,
   },
   deleteRow: {
@@ -238,7 +244,7 @@ const styles = StyleSheet.create({
   deleteText: {
     fontSize: 15,
     fontWeight: '600',
-    color: Colors.danger,
+    color: colors.danger,
   },
   footer: {
     position: 'absolute',
@@ -247,6 +253,6 @@ const styles = StyleSheet.create({
     right: 0,
     paddingHorizontal: Spacing.screen,
     paddingTop: Spacing.sm,
-    backgroundColor: Colors.bg,
+    backgroundColor: colors.bg,
   },
 });

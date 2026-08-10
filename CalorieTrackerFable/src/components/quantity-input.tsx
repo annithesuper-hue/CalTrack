@@ -1,9 +1,9 @@
 import { SymbolView } from 'expo-symbols';
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { haptic } from '@/lib/haptics';
-import { Colors, Radius, Spacing } from '@/lib/theme';
+import { Radius, Spacing, ThemeColors, useColors } from '@/lib/theme';
 
 type AmountUnit = 'g' | 'kg' | 'ml' | 'l';
 
@@ -24,6 +24,8 @@ type QuantityInputProps = {
  * instead of guessing how many "servings" that is.
  */
 export function QuantityInput({ baseUnit, defaultQuantity, servingDescription, onChange }: QuantityInputProps) {
+  const colors = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [mode, setMode] = useState<'servings' | 'amount'>('servings');
   const [servings, setServings] = useState(1);
   const [amountUnit, setAmountUnit] = useState<AmountUnit>(baseUnit === 'ml' ? 'ml' : 'g');
@@ -111,6 +113,8 @@ export function QuantityInput({ baseUnit, defaultQuantity, servingDescription, o
 }
 
 function ModeTab({ label, active, onPress }: { label: string; active: boolean; onPress: () => void }) {
+  const colors = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   return (
     <Pressable onPress={onPress} style={[styles.modeTab, active && styles.modeTabActive]}>
       <Text style={[styles.modeTabText, active && styles.modeTabTextActive]}>{label}</Text>
@@ -119,116 +123,119 @@ function ModeTab({ label, active, onPress }: { label: string; active: boolean; o
 }
 
 function StepperButton({ symbol, onPress }: { symbol: 'plus' | 'minus'; onPress: () => void }) {
+  const colors = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   return (
-    <Pressable onPress={onPress} hitSlop={8} style={({ pressed }) => [styles.stepper, pressed && { backgroundColor: Colors.cardPressed }]}>
-      <SymbolView name={symbol} size={14} tintColor={Colors.ink} />
+    <Pressable onPress={onPress} hitSlop={8} style={({ pressed }) => [styles.stepper, pressed && { backgroundColor: colors.cardPressed }]}>
+      <SymbolView name={symbol} size={14} tintColor={colors.ink} />
     </Pressable>
   );
 }
 
-const styles = StyleSheet.create({
-  wrap: {
-    gap: Spacing.sm,
-  },
-  modeRow: {
-    flexDirection: 'row',
-    backgroundColor: Colors.bg,
-    borderRadius: Radius.full,
-    padding: 3,
-    alignSelf: 'flex-start',
-  },
-  modeTab: {
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: Radius.full,
-  },
-  modeTabActive: {
-    backgroundColor: Colors.card,
-  },
-  modeTabText: {
-    fontSize: 12.5,
-    fontWeight: '700',
-    color: Colors.inkMuted,
-  },
-  modeTabTextActive: {
-    color: Colors.ink,
-  },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: Spacing.sm,
-  },
-  hint: {
-    flex: 1,
-    fontSize: 12.5,
-    fontWeight: '600',
-    color: Colors.inkSecondary,
-  },
-  servingsControls: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  servingsValue: {
-    fontSize: 17,
-    fontWeight: '700',
-    color: Colors.ink,
-    fontVariant: ['tabular-nums'],
-    minWidth: 34,
-    textAlign: 'center',
-  },
-  stepper: {
-    width: 34,
-    height: 34,
-    borderRadius: Radius.full,
-    backgroundColor: Colors.bg,
-    borderWidth: 1,
-    borderColor: Colors.hairline,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  amountInputWrap: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.bg,
-    borderRadius: Radius.md,
-    borderWidth: 1,
-    borderColor: Colors.hairline,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: 8,
-  },
-  amountInput: {
-    flex: 1,
-    fontSize: 17,
-    fontWeight: '700',
-    color: Colors.ink,
-    fontVariant: ['tabular-nums'],
-    padding: 0,
-  },
-  unitChoices: {
-    flexDirection: 'row',
-    gap: 6,
-  },
-  unitChip: {
-    paddingHorizontal: 12,
-    paddingVertical: 9,
-    borderRadius: Radius.md,
-    borderWidth: 1,
-    borderColor: Colors.hairline,
-    backgroundColor: Colors.bg,
-  },
-  unitChipActive: {
-    backgroundColor: Colors.ink,
-    borderColor: Colors.ink,
-  },
-  unitChipText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: Colors.inkSecondary,
-  },
-  unitChipTextActive: {
-    color: '#FFFFFF',
-  },
-});
+const createStyles = (colors: ThemeColors) =>
+  StyleSheet.create({
+    wrap: {
+      gap: Spacing.sm,
+    },
+    modeRow: {
+      flexDirection: 'row',
+      backgroundColor: colors.bg,
+      borderRadius: Radius.full,
+      padding: 3,
+      alignSelf: 'flex-start',
+    },
+    modeTab: {
+      paddingHorizontal: 14,
+      paddingVertical: 6,
+      borderRadius: Radius.full,
+    },
+    modeTabActive: {
+      backgroundColor: colors.card,
+    },
+    modeTabText: {
+      fontSize: 12.5,
+      fontWeight: '700',
+      color: colors.inkMuted,
+    },
+    modeTabTextActive: {
+      color: colors.ink,
+    },
+    row: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: Spacing.sm,
+    },
+    hint: {
+      flex: 1,
+      fontSize: 12.5,
+      fontWeight: '600',
+      color: colors.inkSecondary,
+    },
+    servingsControls: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+    },
+    servingsValue: {
+      fontSize: 17,
+      fontWeight: '700',
+      color: colors.ink,
+      fontVariant: ['tabular-nums'],
+      minWidth: 34,
+      textAlign: 'center',
+    },
+    stepper: {
+      width: 34,
+      height: 34,
+      borderRadius: Radius.full,
+      backgroundColor: colors.bg,
+      borderWidth: 1,
+      borderColor: colors.hairline,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    amountInputWrap: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: colors.bg,
+      borderRadius: Radius.md,
+      borderWidth: 1,
+      borderColor: colors.hairline,
+      paddingHorizontal: Spacing.md,
+      paddingVertical: 8,
+    },
+    amountInput: {
+      flex: 1,
+      fontSize: 17,
+      fontWeight: '700',
+      color: colors.ink,
+      fontVariant: ['tabular-nums'],
+      padding: 0,
+    },
+    unitChoices: {
+      flexDirection: 'row',
+      gap: 6,
+    },
+    unitChip: {
+      paddingHorizontal: 12,
+      paddingVertical: 9,
+      borderRadius: Radius.md,
+      borderWidth: 1,
+      borderColor: colors.hairline,
+      backgroundColor: colors.bg,
+    },
+    unitChipActive: {
+      backgroundColor: colors.accent,
+      borderColor: colors.accent,
+    },
+    unitChipText: {
+      fontSize: 13,
+      fontWeight: '700',
+      color: colors.inkSecondary,
+    },
+    unitChipTextActive: {
+      color: colors.onAccent,
+    },
+  });

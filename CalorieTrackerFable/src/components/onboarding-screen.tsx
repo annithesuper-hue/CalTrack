@@ -1,10 +1,10 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/ui';
-import { Colors, Spacing, Type } from '@/lib/theme';
+import { Spacing, ThemeColors, useColors, useTypeStyles } from '@/lib/theme';
 
 type OnboardingScreenProps = {
   title: string;
@@ -17,6 +17,9 @@ type OnboardingScreenProps = {
 
 export function OnboardingScreen({ title, subtitle, children, ctaTitle = 'Continue', ctaDisabled, onNext }: OnboardingScreenProps) {
   const insets = useSafeAreaInsets();
+  const colors = useColors();
+  const Type = useTypeStyles(colors);
+  const styles = useMemo(() => createStyles(colors, Type), [colors, Type]);
   return (
     <View style={styles.container}>
       <ScrollView
@@ -38,34 +41,35 @@ export function OnboardingScreen({ title, subtitle, children, ctaTitle = 'Contin
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.bg,
-  },
-  content: {
-    paddingHorizontal: Spacing.screen,
-    paddingTop: Spacing.xl,
-    paddingBottom: Spacing.xxl,
-  },
-  textBlock: {
-    gap: Spacing.sm,
-    marginBottom: Spacing.xxl,
-  },
-  title: {
-    ...Type.title,
-    lineHeight: 34,
-  },
-  subtitle: {
-    ...Type.secondary,
-    lineHeight: 22,
-  },
-  body: {
-    gap: Spacing.md,
-  },
-  footer: {
-    paddingHorizontal: Spacing.screen,
-    paddingTop: Spacing.sm,
-    backgroundColor: Colors.bg,
-  },
-});
+const createStyles = (colors: ThemeColors, Type: ReturnType<typeof useTypeStyles>) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.bg,
+    },
+    content: {
+      paddingHorizontal: Spacing.screen,
+      paddingTop: Spacing.xl,
+      paddingBottom: Spacing.xxl,
+    },
+    textBlock: {
+      gap: Spacing.sm,
+      marginBottom: Spacing.xxl,
+    },
+    title: {
+      ...Type.title,
+      lineHeight: 34,
+    },
+    subtitle: {
+      ...Type.secondary,
+      lineHeight: 22,
+    },
+    body: {
+      gap: Spacing.md,
+    },
+    footer: {
+      paddingHorizontal: Spacing.screen,
+      paddingTop: Spacing.sm,
+      backgroundColor: colors.bg,
+    },
+  });

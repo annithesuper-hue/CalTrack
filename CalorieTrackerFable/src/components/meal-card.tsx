@@ -1,17 +1,22 @@
 import { Image } from 'expo-image';
 import { SymbolView } from 'expo-symbols';
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { HealthBadge } from '@/components/health-badge';
 import { haptic } from '@/lib/haptics';
-import { MealTypeMeta } from '@/lib/meal-type';
-import { Colors, MacroMeta, Radius, Shadow, Spacing } from '@/lib/theme';
+import { getMealTypeMeta } from '@/lib/meal-type';
+import { Radius, Spacing, ThemeColors, useColors, useMacroMeta, useShadow } from '@/lib/theme';
 import type { Meal } from '@/lib/types';
 import { formatTime } from '@/lib/dates';
 
 export function MealCard({ meal, onPress }: { meal: Meal; onPress?: () => void }) {
-  const mealTypeMeta = MealTypeMeta[meal.mealType];
+  const colors = useColors();
+  const shadow = useShadow();
+  const styles = useMemo(() => createStyles(colors, shadow), [colors, shadow]);
+  const MacroMeta = useMacroMeta(colors);
+  const mealTypeMeta = useMemo(() => getMealTypeMeta(colors)[meal.mealType], [colors, meal.mealType]);
+
   return (
     <Pressable
       onPress={() => {
@@ -20,7 +25,7 @@ export function MealCard({ meal, onPress }: { meal: Meal; onPress?: () => void }
           onPress();
         }
       }}
-      style={({ pressed }) => [styles.card, pressed && { backgroundColor: Colors.cardPressed }]}>
+      style={({ pressed }) => [styles.card, pressed && { backgroundColor: colors.cardPressed }]}>
       {meal.photoUri ? (
         <Image source={{ uri: meal.photoUri }} style={styles.photo} contentFit="cover" transition={150} />
       ) : (
@@ -55,6 +60,9 @@ export function MealCard({ meal, onPress }: { meal: Meal; onPress?: () => void }
 }
 
 function MacroDot({ color, value }: { color: string; value: number }) {
+  const colors = useColors();
+  const shadow = useShadow();
+  const styles = useMemo(() => createStyles(colors, shadow), [colors, shadow]);
   return (
     <View style={styles.dotGroup}>
       <View style={[styles.dot, { backgroundColor: color }]} />
@@ -63,95 +71,96 @@ function MacroDot({ color, value }: { color: string; value: number }) {
   );
 }
 
-const styles = StyleSheet.create({
-  card: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.card,
-    borderRadius: Radius.lg,
-    padding: Spacing.md,
-    gap: Spacing.md,
-    ...Shadow.card,
-  },
-  photo: {
-    width: 52,
-    height: 52,
-    borderRadius: Radius.md,
-  },
-  emojiWrap: {
-    width: 52,
-    height: 52,
-    borderRadius: Radius.md,
-    backgroundColor: Colors.bg,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  emoji: {
-    fontSize: 26,
-  },
-  info: {
-    flex: 1,
-    gap: 4,
-  },
-  nameLine: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-  },
-  name: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: Colors.ink,
-    letterSpacing: -0.2,
-    flexShrink: 1,
-  },
-  macroRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-  },
-  mealTypeTag: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 3,
-  },
-  mealTypeText: {
-    fontSize: 11,
-    fontWeight: '700',
-  },
-  time: {
-    fontSize: 12,
-    color: Colors.inkMuted,
-    fontVariant: ['tabular-nums'],
-  },
-  dotGroup: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 3,
-  },
-  dot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-  },
-  dotText: {
-    fontSize: 12,
-    color: Colors.inkSecondary,
-    fontVariant: ['tabular-nums'],
-  },
-  kcalWrap: {
-    alignItems: 'flex-end',
-  },
-  kcal: {
-    fontSize: 17,
-    fontWeight: '800',
-    color: Colors.ink,
-    fontVariant: ['tabular-nums'],
-    letterSpacing: -0.3,
-  },
-  kcalUnit: {
-    fontSize: 11,
-    color: Colors.inkMuted,
-    fontWeight: '500',
-  },
-});
+const createStyles = (colors: ThemeColors, Shadow: ReturnType<typeof useShadow>) =>
+  StyleSheet.create({
+    card: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: colors.card,
+      borderRadius: Radius.lg,
+      padding: Spacing.md,
+      gap: Spacing.md,
+      ...Shadow.card,
+    },
+    photo: {
+      width: 52,
+      height: 52,
+      borderRadius: Radius.md,
+    },
+    emojiWrap: {
+      width: 52,
+      height: 52,
+      borderRadius: Radius.md,
+      backgroundColor: colors.bg,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    emoji: {
+      fontSize: 26,
+    },
+    info: {
+      flex: 1,
+      gap: 4,
+    },
+    nameLine: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: Spacing.sm,
+    },
+    name: {
+      fontSize: 15,
+      fontWeight: '600',
+      color: colors.ink,
+      letterSpacing: -0.2,
+      flexShrink: 1,
+    },
+    macroRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: Spacing.sm,
+    },
+    mealTypeTag: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 3,
+    },
+    mealTypeText: {
+      fontSize: 11,
+      fontWeight: '700',
+    },
+    time: {
+      fontSize: 12,
+      color: colors.inkMuted,
+      fontVariant: ['tabular-nums'],
+    },
+    dotGroup: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 3,
+    },
+    dot: {
+      width: 6,
+      height: 6,
+      borderRadius: 3,
+    },
+    dotText: {
+      fontSize: 12,
+      color: colors.inkSecondary,
+      fontVariant: ['tabular-nums'],
+    },
+    kcalWrap: {
+      alignItems: 'flex-end',
+    },
+    kcal: {
+      fontSize: 17,
+      fontWeight: '800',
+      color: colors.ink,
+      fontVariant: ['tabular-nums'],
+      letterSpacing: -0.3,
+    },
+    kcalUnit: {
+      fontSize: 11,
+      color: colors.inkMuted,
+      fontWeight: '500',
+    },
+  });
