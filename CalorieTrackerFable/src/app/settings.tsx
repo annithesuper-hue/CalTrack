@@ -2,7 +2,7 @@ import { useAuth, useUser } from '@clerk/expo';
 import { router } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import React, { useMemo, useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { NutrientField } from '@/components/nutrient-field';
@@ -25,6 +25,36 @@ export default function Settings() {
 
   const [healthOn, setHealthOn] = useState(isHealthSyncEnabled());
   const [remindersOn, setRemindersOn] = useState(areRemindersEnabled());
+
+  const [editingName, setEditingName] = useState(false);
+  const [nameDraft, setNameDraft] = useState(user?.firstName ?? '');
+  const [savingName, setSavingName] = useState(false);
+
+  const startEditingName = () => {
+    haptic.tap();
+    setNameDraft(user?.firstName ?? '');
+    setEditingName(true);
+  };
+
+  const saveName = async () => {
+    const trimmed = nameDraft.trim();
+    if (!trimmed || trimmed === user?.firstName) {
+      setEditingName(false);
+      return;
+    }
+    setSavingName(true);
+    try {
+      await user?.update({ firstName: trimmed });
+      haptic.success();
+      setEditingName(false);
+    } catch (e) {
+      console.warn('Failed to update name', e);
+      haptic.warning();
+      Alert.alert('Could not save name', 'Please check your connection and try again.');
+    } finally {
+      setSavingName(false);
+    }
+  };
 
   const toggleHealth = async (next: boolean) => {
     haptic.select();
@@ -67,6 +97,7 @@ export default function Settings() {
   };
 
   const email = user?.emailAddresses[0]?.emailAddress ?? '';
+  const displayName = user?.firstName ?? email.split('@')[0] ?? 'CalTrack Member';
 
   return (
     <ScrollView
@@ -89,10 +120,37 @@ export default function Settings() {
 
       <Card style={styles.profileCard}>
         <View style={styles.avatar}>
-          <Text style={styles.avatarText}>{(email[0] ?? '?').toUpperCase()}</Text>
+          <Text style={styles.avatarText}>{(displayName[0] ?? '?').toUpperCase()}</Text>
         </View>
         <View style={{ flex: 1 }}>
-          <Text style={styles.profileName}>{user?.fullName ?? 'CalTrack Member'}</Text>
+          {editingName ? (
+            <View style={styles.nameEditRow}>
+              <TextInput
+                value={nameDraft}
+                onChangeText={setNameDraft}
+                placeholder="Your name"
+                placeholderTextColor={colors.inkMuted}
+                style={styles.nameInput}
+                autoFocus
+                autoCapitalize="words"
+                returnKeyType="done"
+                onSubmitEditing={saveName}
+                editable={!savingName}
+              />
+              {savingName ? (
+                <ActivityIndicator color={colors.ink} />
+              ) : (
+                <Pressable onPress={saveName} hitSlop={10}>
+                  <SymbolView name="checkmark.circle.fill" size={22} tintColor={colors.green} />
+                </Pressable>
+              )}
+            </View>
+          ) : (
+            <Pressable onPress={startEditingName} style={styles.nameRow} hitSlop={4}>
+              <Text style={styles.profileName}>{displayName}</Text>
+              <SymbolView name="pencil" size={13} tintColor={colors.inkMuted} />
+            </Pressable>
+          )}
           <Text style={styles.profileEmail}>{email}</Text>
         </View>
         <View style={styles.proPill}>
@@ -257,6 +315,25 @@ function createStyles(theme: Theme) {
       color: colors.accentInk,
       fontSize: 18,
       fontWeight: '800',
+    },
+    nameRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+    },
+    nameEditRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: Spacing.sm,
+    },
+    nameInput: {
+      flex: 1,
+      fontSize: 16,
+      fontWeight: '700',
+      color: colors.ink,
+      paddingVertical: 2,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.hairline,
     },
     profileName: {
       fontSize: 16,

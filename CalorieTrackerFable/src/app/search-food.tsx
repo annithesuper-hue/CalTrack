@@ -529,7 +529,7 @@ function createStyles(theme: Theme) {
   sectionLabel: {
     fontSize: 12,
     fontWeight: '700',
-    color: colors.inkMuted,
+    color: theme.colors.inkMuted,
     textTransform: 'uppercase',
     letterSpacing: 0.4,
     marginBottom: Spacing.sm,
@@ -578,7 +578,7 @@ function createStyles(theme: Theme) {
   },
   editHint: {
     fontSize: 12,
-    color: colors.inkMuted,
+    color: theme.colors.inkMuted,
     marginTop: Spacing.sm,
   },
   resultFooter: {
